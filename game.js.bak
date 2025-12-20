@@ -1,0 +1,334 @@
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+// Game State
+const keys = {
+    ArrowUp: false,
+    ArrowDown: false,
+    ArrowLeft: false,
+    ArrowRight: false,
+    w: false,
+    s: false,
+    a: false,
+    d: false,
+    Space: false
+};
+
+let gamepadIndex = null;
+
+window.addEventListener("gamepadconnected", (e) => {
+    console.log("Gamepad connected at index %d: %s. %d buttons, %d axes.",
+        e.gamepad.index, e.gamepad.id,
+        e.gamepad.buttons.length, e.gamepad.axes.length);
+    gamepadIndex = e.gamepad.index;
+});
+
+window.addEventListener("gamepaddisconnected", (e) => {
+    console.log("Gamepad disconnected from index %d: %s",
+        e.gamepad.index, e.gamepad.id);
+    if (gamepadIndex === e.gamepad.index) {
+        gamepadIndex = null;
+    }
+});
+
+function updateGamepad() {
+    if (gamepadIndex !== null) {
+        const gamepad = navigator.getGamepads()[gamepadIndex];
+        if (gamepad) {
+            // Deadzone threshold
+            const threshold = 0.2;
+
+            // Axis 0: Left/Right
+            keys.ArrowLeft = gamepad.axes[0] < -threshold;
+            keys.ArrowRight = gamepad.axes[0] > threshold;
+
+            // Axis 1: Up/Down
+            keys.ArrowUp = gamepad.axes[1] < -threshold;
+            keys.ArrowDown = gamepad.axes[1] > threshold;
+
+            // D-Pad usually mapped to buttons 12, 13, 14, 15
+            if (gamepad.buttons[12] && gamepad.buttons[12].pressed) keys.ArrowUp = true;
+            if (gamepad.buttons[13] && gamepad.buttons[13].pressed) keys.ArrowDown = true;
+            if (gamepad.buttons[14] && gamepad.buttons[14].pressed) keys.ArrowLeft = true;
+            if (gamepad.buttons[15] && gamepad.buttons[15].pressed) keys.ArrowRight = true;
+
+            // Button 0 (A/Cross) for shooting
+            keys.Space = gamepad.buttons[0].pressed || gamepad.buttons[2].pressed; // A or X can shoot
+        }
+    }
+}
+
+// Assets
+const assets = {
+    helicopter: new Image(),
+    helicopterLeft: new Image(),
+    missile: new Image()
+};
+assets.helicopter.src = 'assets/helicoptero_alpha.png';
+assets.helicopterLeft.src = 'assets/helicoptero_left_alpha.png';
+assets.missile.src = 'assets/missile.png';
+
+assets.missile.src = 'assets/missile.png'; // User updated file
+
+class Starfield {
+    constructor() {
+        this.layers = [
+            { speed: 0.5, stars: [] }, // Distant
+            { speed: 1.5, stars: [] }, // Mid
+            { speed: 3.0, stars: [] }  // Close
+        ];
+        this.baseSpeed = 1;
+        this.init();
+    }
+
+    init() {
+        // Create stars
+        this.layers.forEach((layer, index) => {
+            const count = 20 + (index * 10); // Reduced star count
+            for (let i = 0; i < count; i++) {
+                layer.stars.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    size: (index + 1) * 0.5 + Math.random() * 0.5 // varied sizes
+                });
+            }
+        });
+    }
+
+    update() {
+        this.layers.forEach(layer => {
+            layer.stars.forEach(star => {
+                star.x -= layer.speed * this.baseSpeed;
+                if (star.x < 0) {
+                    star.x = canvas.width;
+                    star.y = Math.random() * canvas.height;
+                }
+            });
+        });
+    }
+
+    draw(ctx) {
+        ctx.fillStyle = 'white';
+        this.layers.forEach(layer => {
+            layer.stars.forEach(star => {
+                ctx.beginPath();
+                ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        });
+    }
+}
+
+// Entities
+class Player {
+    constructor() {
+        this.x = 100;
+        this.y = canvas.height / 2;
+        this.speed = 2; // Slower movement
+        this.width = 120; // Hitbox width (scaled down visual)
+        this.height = 60; // Hitbox height
+
+        // Animation
+        this.frameX = 0;
+        this.frameY = 0; // Only 1 row used now after user's fix? actually we have 4 rows but they are identical now
+        this.maxFrame = 4; // 16 frames total, but 4 columns
+        this.spriteWidth = 600; // 2400 / 4
+        this.spriteHeight = 448; // 1792 / 4
+        this.frameTimer = 0;
+        this.frameInterval = 5; // Animation speed
+
+        this.bullets = [];
+        this.shootTimer = 0;
+        this.direction = 'right';
+    }
+
+    update() {
+        // Movement
+        if (keys.ArrowUp || keys.w) this.y -= this.speed;
+        if (keys.ArrowDown || keys.s) this.y += this.speed;
+        if (keys.ArrowLeft || keys.a) {
+            this.x -= this.speed;
+            this.direction = 'left';
+        }
+        if (keys.ArrowRight || keys.d) {
+            this.x += this.speed;
+            this.direction = 'right';
+        }
+
+        // Boundaries
+        if (this.x < 0) this.x = 0;
+        if (this.x > canvas.width - this.width) this.x = canvas.width - this.width;
+        if (this.y < 0) this.y = 0;
+        if (this.y > canvas.height - this.height) this.y = canvas.height - this.height;
+
+        // Animation
+        this.frameTimer++;
+        if (this.frameTimer > this.frameInterval) {
+            this.frameX++;
+            if (this.frameX >= this.maxFrame) this.frameX = 0;
+            this.frameTimer = 0;
+        }
+
+        // Shooting
+        if (keys.Space && this.shootTimer <= 0) {
+            this.shoot();
+            this.shootTimer = 30; // Increased Cooldown (approx 0.5s at 60fps)
+        }
+        if (this.shootTimer > 0) this.shootTimer--;
+
+        // Update Bullets
+        this.bullets.forEach((bullet, index) => {
+            bullet.update();
+            if (bullet.markedForDeletion) this.bullets.splice(index, 1);
+        });
+    }
+
+    draw(ctx) {
+        // Draw Bullets
+        this.bullets.forEach(bullet => bullet.draw(ctx));
+
+        // Draw Player
+        // Sprite is 600x448. Target width around 150px.
+        const scale = 0.25;
+
+        const sprite = this.direction === 'left' ? assets.helicopterLeft : assets.helicopter;
+
+        ctx.drawImage(
+            sprite,
+            this.frameX * this.spriteWidth, 0 * this.spriteHeight, // Source X, Y (Always row 0 or any row since they are same)
+            this.spriteWidth, this.spriteHeight,
+            this.x - 20, this.y - 30, // Adjust dest X, Y to align sprite with hitbox
+            this.spriteWidth * scale, this.spriteHeight * scale
+        );
+
+        // Debug Hitbox
+        // ctx.strokeStyle = 'red';
+        // ctx.strokeRect(this.x, this.y, this.width, this.height);
+    }
+
+    shoot() {
+        if (this.bullets.length < 4) { // Max 4 missiles
+            // Calculate spawn X based on direction
+            const spawnX = this.direction === 'right'
+                ? this.x + this.width - 20
+                : this.x - 40; // Adjust for left spawn
+
+            this.bullets.push(new Bullet(spawnX, this.y + this.height / 2, this.direction));
+        }
+    }
+}
+
+class Bullet {
+    constructor(x, y, direction) {
+        this.x = x;
+        this.y = y;
+        this.direction = direction;
+        this.speed = 6;
+        this.markedForDeletion = false;
+
+        // Visual
+        this.width = 60; // Slightly larger
+        this.height = 30;
+
+        // Animation
+        this.currentFrame = 0;
+        this.totalFrames = 10; // 5 rows * 2 cols
+        this.cols = 2;
+        this.spriteWidth = 860; // 1721 / 2
+        this.spriteHeight = 339; // 1696 / 5
+        this.frameTimer = 0;
+        this.frameInterval = 20; // Debug slow
+    }
+
+    update() {
+        if (this.direction === 'right') {
+            this.x += this.speed;
+            if (this.x > canvas.width) this.markedForDeletion = true;
+        } else {
+            this.x -= this.speed;
+            if (this.x + this.width < 0) this.markedForDeletion = true;
+        }
+
+        // Animate
+        this.frameTimer++;
+        if (this.frameTimer > this.frameInterval) {
+            this.currentFrame++;
+            if (this.currentFrame >= this.totalFrames) this.currentFrame = 0;
+            this.frameTimer = 0;
+        }
+    }
+
+    draw(ctx) {
+        if (assets.missile.complete && assets.missile.naturalWidth > 0) {
+            // Calculate frame position
+            let col = this.currentFrame % this.cols;
+            let row = Math.floor(this.currentFrame / this.cols);
+
+            // Draw animated missile
+            ctx.save();
+            if (this.direction === 'left') {
+                ctx.translate(this.x + this.width, this.y);
+                ctx.scale(-1, 1);
+                ctx.drawImage(
+                    assets.missile,
+                    col * this.spriteWidth, row * this.spriteHeight,
+                    this.spriteWidth, this.spriteHeight,
+                    0, -10, // Local coordinates after translate/scale
+                    this.width, this.height
+                );
+            } else {
+                ctx.drawImage(
+                    assets.missile,
+                    col * this.spriteWidth, row * this.spriteHeight,
+                    this.spriteWidth, this.spriteHeight,
+                    this.x, this.y - 10,
+                    this.width, this.height
+                );
+            }
+            ctx.restore();
+        } else {
+            ctx.fillStyle = 'yellow';
+            ctx.fillRect(this.x, this.y, this.width, this.height);
+        }
+    }
+}
+
+// Initialization
+const starfield = new Starfield();
+const player = new Player();
+
+// Input
+window.addEventListener('keydown', e => {
+    if (keys.hasOwnProperty(e.key) || e.key === ' ') {
+        if (e.key === ' ') keys.Space = true;
+        else keys[e.key] = true;
+    }
+});
+
+window.addEventListener('keyup', e => {
+    if (keys.hasOwnProperty(e.key) || e.key === ' ') {
+        if (e.key === ' ') keys.Space = false;
+        else keys[e.key] = false;
+    }
+});
+
+function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Background first
+    starfield.update();
+    starfield.draw(ctx);
+
+    // Update Input
+    updateGamepad();
+
+    player.update();
+    player.draw(ctx);
+
+    requestAnimationFrame(animate);
+}
+
+// Wait for assets?
+assets.helicopter.onload = () => {
+    animate();
+};

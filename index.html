@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cosmic Parasite - Retro Shooter</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <canvas id="gameCanvas" width="960" height="540"></canvas>
+
+
+
+    <div id="intro-screen">
+        <div class="intro-content">
+            <h1>COSMIC PARASITE</h1>
+            <h2 id="loading-text">LOADING 0%</h2>
+            <div class="high-scores hidden">
+                <h2>TOP 20 PILOTS</h2>
+                <div class="score-list">
+                    <!-- Scores populated by JS -->
+                </div>
+            </div>
+            <p id="start-text" style="display: none;">Clique para Iniciar</p>
+        </div>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="game-over-screen" class="hidden">
+        <h1>GAME OVER</h1>
+        <p id="final-score">CASH: 0</p>
+
+        <div id="name-entry" class="hidden">
+            <p>ENTER YOUR NAME:</p>
+            <input type="text" id="player-name" maxlength="6" placeholder="" autocomplete="off">
+            <button id="submit-name-btn">[ ENTER ]</button>
+        </div>
+
+        <p id="restart-msg" class="hidden">Pressione qualquer tecla</p>
+    </div>
+
+    <div id="fade-overlay"></div>
+    <script type="module" src="src/main.js"></script>
+</body>
+
+</html>

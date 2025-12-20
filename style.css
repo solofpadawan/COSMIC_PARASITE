@@ -1,0 +1,252 @@
+body {
+    background-color: #000;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    color: #fff;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+#gameCanvas {
+    background-color: #000;
+    border: 4px solid #444;
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.7);
+
+    /* Responsive Scaling */
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    /* Keeps aspect ratio within the box */
+
+    /* Pixel Art Look */
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+}
+
+.ui-layer {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    font-size: 24px;
+    text-shadow: 2px 2px 0 #000;
+}
+
+#intro-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    /* Transparent so we see the canvas with Starfield.js behind it */
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    cursor: pointer;
+}
+
+.intro-content {
+    text-align: center;
+    z-index: 2;
+    width: 95%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.intro-content h1 {
+    font-size: 48px;
+    color: #ff00ff;
+    text-shadow: 0 0 10px #ff00ff;
+    margin-bottom: 20px;
+}
+
+.intro-content p {
+    font-size: 24px;
+    animation: blink 1s infinite;
+}
+
+@keyframes blink {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0;
+    }
+}
+
+#fade-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: black;
+    opacity: 0;
+    z-index: 200;
+    /* On top of everything */
+    pointer-events: none;
+    /* Allow clicks through when invisible (though we handle visibility via opacity) */
+    transition: opacity 0.5s ease-in-out;
+}
+
+/* --- High Score Styles --- */
+.high-scores {
+    /* Layout */
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%) translateY(100vh);
+    bottom: auto;
+    top: 50%;
+    /* Sizing */
+    width: 95%;
+    max-width: 1200px;
+    /* Visual */
+    background: rgba(0, 0, 0, 0.85);
+    padding: 20px;
+    border: 3px solid #00ff00;
+    border-radius: 15px;
+    box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
+    z-index: 150;
+    /* Animation */
+    opacity: 0;
+    transition: transform 1s ease-out, opacity 0.5s ease-out;
+}
+
+.high-scores.animate-in {
+    transform: translateX(-50%) translateY(-50%);
+    opacity: 1;
+}
+
+.high-scores.animate-out {
+    transform: translateX(-50%) translateY(100vh);
+    opacity: 0;
+}
+
+.high-scores h2 {
+    color: #00ff00;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 24px;
+    /* Larger Title */
+    margin-bottom: 20px;
+    text-shadow: 3px 3px 0 #000;
+    text-align: center;
+}
+
+.score-list {
+    text-align: left;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 16px;
+    /* Larger Text */
+    color: #fff;
+    line-height: 1.8;
+    column-count: 2;
+    /* 2 Columns */
+    column-gap: 40px;
+    /* Space between columns */
+}
+
+.score-entry {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    /* Fill column width */
+    margin: 5px 0;
+    border-bottom: 1px dashed rgba(0, 255, 0, 0.3);
+    padding-bottom: 2px;
+}
+
+.score-entry span:first-child {
+    color: #ff00ff;
+    /* Rank/Name Color */
+}
+
+.score-entry span:last-child {
+    color: #ffff00;
+    /* Score Color */
+}
+
+/* --- Game Over Screen --- */
+#game-over-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.85);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 150;
+    font-family: 'Press Start 2P', monospace;
+}
+
+#game-over-screen h1 {
+    font-size: 48px;
+    color: #ff0000;
+    text-shadow: 4px 4px 0 #000;
+    margin-bottom: 20px;
+}
+
+#final-score {
+    font-size: 24px;
+    color: #ffff00;
+    margin-bottom: 40px;
+}
+
+#name-entry {
+    text-align: center;
+}
+
+#name-entry p {
+    color: #00ff00;
+    margin-bottom: 10px;
+}
+
+#player-name {
+    background: #000;
+    border: 2px solid #00ff00;
+    color: #fff;
+    padding: 10px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 20px;
+    text-transform: uppercase;
+    text-align: center;
+    width: 200px;
+    margin-bottom: 20px;
+}
+
+#submit-name-btn {
+    background: #00ff00;
+    color: #000;
+    border: none;
+    padding: 10px 20px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+#submit-name-btn:hover {
+    background: #fff;
+}
+
+#restart-msg {
+    color: #fff;
+    animation: blink 1s infinite;
+    margin-top: 30px;
+    font-size: 14px;
+}
+
+.hidden {
+    display: none !important;
+}
