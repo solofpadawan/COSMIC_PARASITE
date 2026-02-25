@@ -402,6 +402,11 @@ export class Game {
         this.environment.reset(); // Restart ground timer
         this.player.x = 100;
         this.player.y = 200;
+
+        // Reset player orientation to facing right
+        this.player.direction = 'right';
+        this.player.isTurning = false;
+
         // Logic for Fade In is handled in update()
     }
 
