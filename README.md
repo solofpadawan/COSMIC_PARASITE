@@ -72,5 +72,13 @@ Se você quiser apenas testar a jogabilidade sem salvar pontuações, você pode
 *   **`scores_cosmic.db`**: Banco de dados SQLite contendo os recordes.
 *   **`*.py`**: Scripts Python na raiz utilizados para processar e otimizar assets gráficos.
 
+## 📚 Documentação Técnica
+
+Para entender mais a fundo como o jogo funciona por baixo dos panos (ideal para desenvolvedores e IAs estudando a *Codebase*), consulte a documentação detalhada:
+
+- [Arquitetura Geral (`ARCHITECTURE.md`)](docs/ARCHITECTURE.md): Detalha o Main Loop, separação de Estados, Gerenciadores e como as mecânicas convergem.
+- [A Lógica das Entidades (`ENTITIES.md`)](docs/ENTITIES.md): Abrange as instâncias de inimigos, tiros, jogadores e como os estados atuam em seus ciclos de vida (Desenho, Interação, Lixeira).
+- [O Sistema Ambiental (`ENVIRONMENT.md`)](docs/ENVIRONMENT.md): Como funciona a rolagem contínua das fases, Parallax, spawnings independentes (Estátuas e Lojas) e Checagem Pixeladas de colisões de terrenos.
+
 ---
 *Divirta-se e boa sorte, piloto!*

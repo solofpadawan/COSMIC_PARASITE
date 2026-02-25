@@ -2,13 +2,14 @@ import { Assets } from '../core/Assets.js';
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from '../utils/Constants.js';
 
 export class Projectile {
-    constructor(x, y, directionOrVelocity, type = 'missile') {
+    constructor(x, y, directionOrVelocity, type = 'missile', speedMultiplier = 1) {
         this.x = x;
         this.y = y;
         this.type = type;
         this.markedForDeletion = false;
 
-        let speed = 6;
+        let baseSpeed = 6;
+        let speed = baseSpeed * speedMultiplier;
         if (this.type === 'alien_spit') {
             speed = 4;
             this.width = 30;
@@ -98,7 +99,15 @@ export class Projectile {
             }
         } else if (this.type === 'alien_spit') {
             if (Assets.alien_spit.complete) {
-                ctx.drawImage(Assets.alien_spit, this.x, this.y, this.width, this.height);
+                ctx.save();
+                if (this.direction === 'right') {
+                    ctx.translate(this.x + this.width, this.y);
+                    ctx.scale(-1, 1);
+                    ctx.drawImage(Assets.alien_spit, 0, 0, this.width, this.height);
+                } else {
+                    ctx.drawImage(Assets.alien_spit, this.x, this.y, this.width, this.height);
+                }
+                ctx.restore();
             } else {
                 ctx.fillStyle = '#00ff00';
                 ctx.fillRect(this.x, this.y, this.width, this.height);

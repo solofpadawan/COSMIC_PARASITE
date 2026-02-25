@@ -32,6 +32,7 @@ export class Player {
         this.shootTimer = 0;
         this.canShoot = true;
         this.direction = 'right';
+        this.bulletSpeedMultiplier = 1; // Default speed
     }
 
     startTurn(target) {
@@ -202,7 +203,7 @@ export class Player {
                 ? this.x + this.width - 5
                 : this.x - 20;
 
-            this.bullets.push(new Projectile(spawnX, this.y + this.height / 2, fireDirection));
+            this.bullets.push(new Projectile(spawnX, this.y + this.height / 2, fireDirection, 'missile', this.bulletSpeedMultiplier));
             if (this.audio) this.audio.playSFX('assets/audio/shoot.ogg');
         }
     }

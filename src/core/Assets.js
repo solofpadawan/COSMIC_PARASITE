@@ -9,9 +9,12 @@ export const Assets = {
     ground: new Image(),
     groundIntro: new Image(),
     logo: new Image(),
+    groundShop: new Image(),
     turn: [], // Array for turn frames
     coin: [], // Array for Coin frames
+    speedUp: [], // Speed-up powerup frames
     enemy01: [], // Array for Enemy 01 frames
+    enemy02: [], // Array for Enemy 02 frames
     explosionEnemy01: [], // Explosion frames
     audio: {
         shoot: new Audio(),
@@ -22,9 +25,9 @@ export const Assets = {
 export function loadAssets(onProgress) {
     return new Promise((resolve) => {
         let loaded = 0;
-        // Base images (11) + Turn (5) + Audio (2) + Enemy (45) + Explosion (28) + Coin (23)
-        // 11 + 5 + 2 + 45 + 28 + 23 = 114
-        const total = 114;
+        // Base images (11) + Turn (5) + Audio (2) + Enemy (45) + Explosion (28) + Coin (23) + Enemy02 (48) + SpeedUp (47) + groundShop (1)
+        // 11 + 5 + 2 + 45 + 28 + 23 + 48 + 47 + 1 = 210
+        const total = 210;
 
         const onLoad = () => {
             loaded++;
@@ -52,6 +55,9 @@ export function loadAssets(onProgress) {
 
         Assets.ground.src = 'assets/images/ground_v4.png';
         Assets.ground.onload = onLoad;
+
+        Assets.groundShop.src = 'assets/images/ground_v4_shop.png';
+        Assets.groundShop.onload = onLoad;
 
         Assets.mist.src = 'assets/images/mist_texture.png';
         Assets.mist.onload = onLoad;
@@ -105,6 +111,20 @@ export function loadAssets(onProgress) {
             Assets.enemy01.push(img);
         }
 
+        // Load Enemy 02 Frames (000000.png to 000047.png)
+        for (let i = 0; i <= 47; i++) {
+            const img = new Image();
+            // Pad start with zeros to 6 digits
+            const num = i.toString().padStart(6, '0');
+            img.src = `assets/images/enemy02/${num}.png`;
+            img.onload = onLoad;
+            img.onerror = () => {
+                console.warn(`Failed to load enemy02 frame ${num}`);
+                onLoad(); // Proceed anyway
+            };
+            Assets.enemy02.push(img);
+        }
+
         // Load Explosion Frames (0001.png to 0028.png)
         for (let i = 1; i <= 28; i++) {
             const img = new Image();
@@ -130,6 +150,19 @@ export function loadAssets(onProgress) {
                 onLoad();
             };
             Assets.coin.push(img);
+        }
+
+        // Load Speed-Up Frames (000000.png to 000046.png)
+        for (let i = 0; i <= 46; i++) {
+            const img = new Image();
+            const num = i.toString().padStart(6, '0');
+            img.src = `assets/images/speed-up/speed-up_${num}.png`;
+            img.onload = onLoad;
+            img.onerror = () => {
+                console.warn(`Failed to load speed-up frame ${num}`);
+                onLoad();
+            };
+            Assets.speedUp.push(img);
         }
     });
 }

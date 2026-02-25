@@ -3,9 +3,11 @@ import { AudioManager } from './AudioManager.js';
 import { Assets } from './Assets.js';
 import { Player } from '../entities/Player.js';
 import { Enemy } from '../entities/Enemy.js';
+import { Enemy02 } from '../entities/Enemy02.js';
 import { Projectile } from '../entities/Projectile.js';
 import { Explosion } from '../entities/Explosion.js';
 import { Coin } from '../entities/Coin.js';
+import { SpeedUp } from '../entities/SpeedUp.js';
 import { Environment } from '../environment/Environment.js';
 import { ScoreManager } from './ScoreManager.js';
 import { CANVAS_WIDTH, CANVAS_HEIGHT, GAME_STATE, Keys } from '../utils/Constants.js';
@@ -21,11 +23,15 @@ export class Game {
 
         this.enemies = [];
         this.coins = []; // Coins
+        this.speedUps = []; // Power-ups
+        this.speedUpTimer = 0;
+        this.nextSpeedUpDelay = Math.random() * 10 + 20; // First one between 20-30 seconds
         this.enemyProjectiles = [];
         this.explosions = [];
         this.gameTimer = 0;
         this.wave01Spawned = false;
         this.wave02Spawned = false;
+        this.wave03Spawned = false;
         this.easterEggSpawned = false;
 
         // Barrage State
@@ -148,7 +154,7 @@ export class Game {
             this.ctx.font = 'bold 40px "Courier New", monospace';
             this.ctx.fillStyle = '#FFFFFF';
             this.ctx.textAlign = 'center';
-            this.ctx.fillText("PAUSED", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
+            this.ctx.fillText("PAUSADO", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 50); // Moved down 50px
             this.ctx.restore();
             return; // STOP UPDATE LOOP
         }
@@ -428,11 +434,33 @@ export class Game {
             this.wave02Spawned = true;
         }
 
-        // Easter Egg (After Wave 2)
+        // --- Wave 03 Logic ---
+        // Spawn when Easter Egg has passed the middle and is further to the left (1/4 of the screen)
+        if (this.environment.easterEgg && this.environment.easterEgg.x <= CANVAS_WIDTH / 9 && !this.wave03Spawned) {
+            this.spawnWave03();
+            this.wave03Spawned = true;
+        }
+
+        // Easter Egg (After Wave 2/3)
         // Was 1600 frames. Now 2600m (2.6km)
         if (this.distance >= 3700 && !this.easterEggSpawned) {
             this.environment.spawnEasterEgg(Assets);
+            this.environment.spawnShop();
             this.easterEggSpawned = true;
+        }
+
+        // Speed-Up Spawn Logic (Every 20-30 seconds)
+        // dt is roughly 1/60s normally, so dt accumulates to seconds
+        this.speedUpTimer += dt;
+        if (this.speedUpTimer >= this.nextSpeedUpDelay) {
+            this.speedUpTimer = 0;
+            this.nextSpeedUpDelay = Math.random() * 10 + 20; // 20 to 30 seconds for the next one
+
+            // Random Y on the screen, keeping it within player reachable bounds (100 to CANVAS_HEIGHT - 100)
+            const randomY = 100 + Math.random() * (CANVAS_HEIGHT - 200);
+
+            // Spawns slightly off-screen to the right and floats in
+            this.speedUps.push(new SpeedUp(CANVAS_WIDTH + 50, randomY));
         }
 
         // --- Giant Missile Barrage ---
@@ -504,6 +532,40 @@ export class Game {
                 this.score += 100;
                 this.audio.playCoinSound();
                 this.coins.splice(i, 1); // Remove immediately
+            }
+        }
+
+        // Update SpeedUps
+        for (let i = this.speedUps.length - 1; i >= 0; i--) {
+            const powerUp = this.speedUps[i];
+            powerUp.update(dt);
+
+            // Move the item with the background so it looks like it is part of the scene
+            powerUp.x -= this.environment.groundSpeed * this.environment.baseSpeed * (dt * 60);
+
+            if (powerUp.markedForDeletion || powerUp.x < -100) {
+                this.speedUps.splice(i, 1);
+                continue;
+            }
+
+            // Check Collision with Player
+            if (this.checkCollision(this.player, powerUp)) {
+                // Collect SpeedUp
+                powerUp.markedForDeletion = true;
+
+                // Apply additive speed modifiers instead of doubling
+                // Base speed is 2, adding 0.5 is a 25% increase
+                // Base bullet speed is 6, adding 0.25 to the multiplier is a +1.5 increase
+                // Increase the speed slightly so it's noticeable but manageable
+                this.player.speed += 0.5;
+                this.player.bulletSpeedMultiplier += 0.25;
+
+                // Add an upper cap if we want to prevent going infinitely fast
+                if (this.player.speed > 5) this.player.speed = 5;
+                if (this.player.bulletSpeedMultiplier > 2.5) this.player.bulletSpeedMultiplier = 2.5;
+
+                this.audio.playCoinSound(); // Reusing coin sound or add a powerup sound later
+                this.speedUps.splice(i, 1);
             }
         }
 
@@ -698,6 +760,7 @@ export class Game {
         this.enemies.forEach(enemy => enemy.draw(this.ctx));
         this.enemyProjectiles.forEach(proj => proj.draw(this.ctx));
         this.coins.forEach(coin => coin.draw(this.ctx));
+        this.speedUps.forEach(pu => pu.draw(this.ctx));
         this.explosions.forEach(explosion => explosion.draw(this.ctx));
 
         // Draw Score
@@ -754,7 +817,7 @@ export class Game {
                 this.ctx.textBaseline = 'middle';
                 this.ctx.shadowColor = 'black';
                 this.ctx.shadowBlur = 4;
-                this.ctx.fillText("PAUSED", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
+                this.ctx.fillText("PAUSADO", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 50); // Moved down 50px
             }
             this.ctx.restore();
         }
@@ -820,6 +883,22 @@ export class Game {
         }
     }
 
+    spawnWave03() {
+        const count = 4;
+        const delayBetween = 40; // Spaced out like Enemy01
+
+        // Spawn 4 enemies in a zig zag pattern
+        // Y start varies slightly to make them spread out or follow each other perfectly.
+        // If we want same wave, offset phase.
+
+        for (let i = 0; i < count; i++) {
+            // startY, phaseOffset
+            // To make them follow each other exactly in a snake:
+            // same Y, phaseOffset = i * -1.0; 
+            this.enemies.push(new Enemy02(i * delayBetween, 250, i * -1.2));
+        }
+    }
+
     spawnGiantMissile() {
         // Spawn from Left (-250), Random Y
         const x = -250;
@@ -873,6 +952,9 @@ export class Game {
         // Reset Logic
         this.enemies = [];
         this.coins = [];
+        this.speedUps = [];
+        this.speedUpTimer = 0;
+        this.nextSpeedUpDelay = Math.random() * 10 + 20;
         this.enemyProjectiles = [];
         this.explosions = [];
         this.player.x = 100;
@@ -881,6 +963,7 @@ export class Game {
         this.gameTimer = 0;
         this.wave01Spawned = false;
         this.wave02Spawned = false;
+        this.wave03Spawned = false;
         this.easterEggSpawned = false;
         this.barrageActive = false;
         this.barrageCount = 0;

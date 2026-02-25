@@ -1,4 +1,5 @@
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from '../utils/Constants.js';
+import { Assets } from '../core/Assets.js';
 
 export class ParallaxLayer {
     constructor(image, speed, y = 0, scale = 1.0) {
@@ -228,6 +229,7 @@ export class Environment {
         this.groundIntro.x = CANVAS_WIDTH;
         this.groundLoop.x = CANVAS_WIDTH + (this.groundIntro.width);
         this.easterEgg = null;
+        this.shopActive = false;
 
         // Ensure we are back to Start BG if reset? 
         // Usually reset means Restart Game.
@@ -313,6 +315,11 @@ export class Environment {
                     this.easterEgg = null; // Remove when off screen
                 }
             }
+
+            // Move Shop
+            if (this.shopActive) {
+                this.shopX -= moveAmt;
+            }
         }
     }
 
@@ -384,6 +391,20 @@ export class Environment {
                 this.easterEgg.height  // Add scaled height
             );
         }
+
+        if (this.shopActive && Assets.groundShop.complete) {
+            // Because shop image is 512x752 (taller than normal ground 512x512)
+            // we shift its drawing coordinate UP by the difference
+            const extraHeight = (Assets.groundShop.height - this.groundLoop.img.height) * this.groundScale;
+            const shopY = this.groundY - extraHeight;
+
+            ctx.drawImage(
+                Assets.groundShop,
+                0, 0, Assets.groundShop.width, Assets.groundShop.height,
+                Math.floor(this.shopX), shopY,
+                Assets.groundShop.width * this.groundScale, Assets.groundShop.height * this.groundScale
+            );
+        }
     }
 
     spawnEasterEgg(assets) {
@@ -406,5 +427,24 @@ export class Environment {
             scale: scale, // Store scale relative to original image
             map: this.createCollisionMap(img) // Create Collision Map!
         };
+    }
+
+    spawnShop() {
+        if (!this.shopActive) {
+            this.shopActive = true;
+
+            // Find a ground tile boundary that is safely off-screen to the right,
+            // far enough to be exactly AFTER the Easter Egg.
+            let targetX = CANVAS_WIDTH;
+            if (this.easterEgg) {
+                targetX = this.easterEgg.x + this.easterEgg.width + 1000;
+            }
+
+            let tileX = this.groundLoop.x;
+            while (tileX < targetX) {
+                tileX += this.groundLoop.width;
+            }
+            this.shopX = tileX; // Matches the scrolling grid perfectly!
+        }
     }
 }
