@@ -557,8 +557,8 @@ export class Game {
                 // Base speed is 2, adding 0.5 is a 25% increase
                 // Base bullet speed is 6, adding 0.25 to the multiplier is a +1.5 increase
                 // Increase the speed slightly so it's noticeable but manageable
-                this.player.speed += 0.5;
-                this.player.bulletSpeedMultiplier += 0.25;
+                this.player.speed += 0.7; // era 0.5
+                this.player.bulletSpeedMultiplier += 0.35; // era 0.25
 
                 // Add an upper cap if we want to prevent going infinitely fast
                 if (this.player.speed > 5) this.player.speed = 5;
