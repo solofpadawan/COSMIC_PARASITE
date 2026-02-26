@@ -36,6 +36,7 @@ export class Player {
 
         // Upgrades
         this.weaponType = 'single'; // 'single' ou 'spread'
+        this.fireRateLevel = 0; // 0, 1, 2, 3
         this.baseShootCooldown = 15; // frames
         this.hasShield = false;
         this.shieldVisualTimer = 0;
