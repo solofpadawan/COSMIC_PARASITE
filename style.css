@@ -247,6 +247,83 @@ body {
     font-size: 14px;
 }
 
+/* --- Shop Screen --- */
+#shop-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.9);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 150;
+    font-family: 'Press Start 2P', monospace;
+}
+
+#shop-screen h1 {
+    font-size: 40px;
+    color: #ff00ff;
+    text-shadow: 4px 4px 0 #000;
+    margin-bottom: 20px;
+}
+
+#shop-balance {
+    font-size: 24px;
+    color: #ffff00;
+    margin-bottom: 40px;
+}
+
+.shop-items {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    width: 80%;
+    max-width: 500px;
+}
+
+.shop-btn {
+    background: #000;
+    border: 3px solid #00ff00;
+    color: #fff;
+    padding: 15px 20px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    transition: all 0.2s;
+}
+
+.shop-btn:hover:not(:disabled) {
+    background: #00ff00;
+    color: #000;
+}
+
+.shop-btn:disabled {
+    border-color: #555;
+    color: #555;
+    cursor: not-allowed;
+}
+
+.close-btn {
+    margin-top: 40px;
+    background: transparent;
+    border: 2px solid #ff00ff;
+    color: #ff00ff;
+    padding: 15px 30px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.close-btn:hover {
+    background: #ff00ff;
+    color: #000;
+}
+
 .hidden {
     display: none !important;
 }

@@ -54,14 +54,66 @@ export class Game {
         this.state = GAME_STATE.START;
         this.startScreenTimer = 0; // Cooldown for start screen inputs
 
+        // Shop State
+        this.shopOpen = false;
+        this.shopVisited = false;
+
         // Bind for events
         this.submitName = this.submitName.bind(this);
+        this.closeShop = this.closeShop.bind(this);
+        this.buySpread = this.buySpread.bind(this);
+        this.buyFireRate = this.buyFireRate.bind(this);
+        this.buyShield = this.buyShield.bind(this);
+        this.buyPierce = this.buyPierce.bind(this);
+        this.buyMagnet = this.buyMagnet.bind(this);
         const submitBtn = document.getElementById('submit-name-btn');
         if (submitBtn) {
             // Remove old listeners to avoid duplicates
             const newBtn = submitBtn.cloneNode(true);
             submitBtn.parentNode.replaceChild(newBtn, submitBtn);
             newBtn.addEventListener('click', this.submitName);
+        }
+
+        const btnCloseShop = document.getElementById('btn-close-shop');
+        if (btnCloseShop) {
+            const newBtn = btnCloseShop.cloneNode(true);
+            btnCloseShop.parentNode.replaceChild(newBtn, btnCloseShop);
+            newBtn.addEventListener('click', this.closeShop);
+        }
+
+        const btnBuySpread = document.getElementById('btn-buy-spread');
+        if (btnBuySpread) {
+            const newBtn = btnBuySpread.cloneNode(true);
+            btnBuySpread.parentNode.replaceChild(newBtn, btnBuySpread);
+            newBtn.addEventListener('click', this.buySpread);
+        }
+
+        const btnBuyFireRate = document.getElementById('btn-buy-firerate');
+        if (btnBuyFireRate) {
+            const newBtn = btnBuyFireRate.cloneNode(true);
+            btnBuyFireRate.parentNode.replaceChild(newBtn, btnBuyFireRate);
+            newBtn.addEventListener('click', this.buyFireRate);
+        }
+
+        const btnBuyShield = document.getElementById('btn-buy-shield');
+        if (btnBuyShield) {
+            const newBtn = btnBuyShield.cloneNode(true);
+            btnBuyShield.parentNode.replaceChild(newBtn, btnBuyShield);
+            newBtn.addEventListener('click', this.buyShield);
+        }
+
+        const btnBuyPierce = document.getElementById('btn-buy-piercing');
+        if (btnBuyPierce) {
+            const newBtn = btnBuyPierce.cloneNode(true);
+            btnBuyPierce.parentNode.replaceChild(newBtn, btnBuyPierce);
+            newBtn.addEventListener('click', this.buyPierce);
+        }
+
+        const btnBuyMagnet = document.getElementById('btn-buy-magnet');
+        if (btnBuyMagnet) {
+            const newBtn = btnBuyMagnet.cloneNode(true);
+            btnBuyMagnet.parentNode.replaceChild(newBtn, btnBuyMagnet);
+            newBtn.addEventListener('click', this.buyMagnet);
         }
 
         const nameInput = document.getElementById('player-name');
@@ -141,40 +193,28 @@ export class Game {
 
         // PAUSE LOGIC
         // Toggle Latch
-        if (Keys.Pause && !this.lastPauseState && this.state === GAME_STATE.PLAYING) {
+        if (Keys.Pause && !this.lastPauseState && this.state === GAME_STATE.PLAYING && !this.isTransitioningToShop) {
             this.setPaused(!this.paused);
         }
         this.lastPauseState = Keys.Pause;
-
-        if (this.paused) {
-            // Draw paused state and return
-            this.drawPlaying(); // Draw underlying game
-            this.ctx.save();
-            this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-            this.ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-            this.ctx.font = 'bold 40px "Courier New", monospace';
-            this.ctx.fillStyle = '#FFFFFF';
-            this.ctx.textAlign = 'center';
-            this.ctx.fillText("PAUSADO", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 50); // Moved down 50px
-            this.ctx.restore();
-            return; // STOP UPDATE LOOP
-        }
 
         // Try unlock audio with Gamepad
         if (this.audio.isLocked && this.input.gamepadActive) {
             this.audio.unlock();
         }
 
-        switch (this.state) {
-            case GAME_STATE.START:
-                this.updateStartScreen(dt);
-                break;
-            case GAME_STATE.PLAYING:
-                this.updatePlaying(dt);
-                break;
-            case GAME_STATE.GAME_OVER:
-                this.updateGameOver(dt);
-                break;
+        if (!this.paused) {
+            switch (this.state) {
+                case GAME_STATE.START:
+                    this.updateStartScreen(dt);
+                    break;
+                case GAME_STATE.PLAYING:
+                    this.updatePlaying(dt);
+                    break;
+                case GAME_STATE.GAME_OVER:
+                    this.updateGameOver(dt);
+                    break;
+            }
         }
 
         // Handle Global Fade
@@ -473,6 +513,32 @@ export class Game {
             this.easterEggSpawned = true;
         }
 
+        // --- Shop Logic ---
+        if (this.environment.shopActive && !this.shopVisited && !this.shopOpen && this.fadeState === 'NONE') {
+            // A porta da loja fica numa área específica da imagem.
+            // A imagem tem largura `Assets.groundShop.width * this.environment.groundScale`
+            // Vamos checar um rect na área da porta: do meio pra direita.
+            const shopDrawW = Assets.groundShop.width * this.environment.groundScale;
+            const shopDrawH = Assets.groundShop.height * this.environment.groundScale;
+            // Coordenada Y da loja (desenhada a partir daqui)
+            const extraHeight = (Assets.groundShop.height - this.environment.groundLoop.img.height) * this.environment.groundScale;
+            const shopY = this.environment.groundY - extraHeight;
+
+            // Retângulo aproximado da porta da loja (metade direita, inferior)
+            const doorRect = {
+                x: this.environment.shopX + shopDrawW * 0.5, // Começa na metade da loja
+                y: shopY + shopDrawH * 0.5, // Começa na metade inferior
+                width: shopDrawW * 0.4,
+                height: shopDrawH * 0.5
+            };
+
+            // Se o player encostar nessa área:
+            if (this.checkCollision(this.player, doorRect)) {
+                // Inicia o fade out parando o jogo
+                this.triggerShopFade();
+            }
+        }
+
         // Speed-Up Spawn Logic (Every 20-30 seconds)
         // dt is roughly 1/60s normally, so dt accumulates to seconds
         this.speedUpTimer += dt;
@@ -543,7 +609,7 @@ export class Game {
         // Update Coins
         for (let i = this.coins.length - 1; i >= 0; i--) {
             const coin = this.coins[i];
-            coin.update(dt);
+            coin.update(dt, this.player);
             if (coin.markedForDeletion) {
                 this.coins.splice(i, 1);
                 continue; // Skip collision check if deleted
@@ -633,7 +699,10 @@ export class Game {
                     // Collision Detected!
                     enemy.markedForDeletion = true;
                     this.coins.push(new Coin(enemy.x, enemy.y)); // Spawn Coin
-                    bullet.markedForDeletion = true;
+
+                    if (bullet.type !== 'pierce') {
+                        bullet.markedForDeletion = true;
+                    }
 
                     // Spawn Explosion (Centered)
                     const centerX = enemy.x + (enemy.width / 2);
@@ -643,7 +712,9 @@ export class Game {
                     // Play Explosion Sound
                     this.audio.playSFX('assets/audio/explosion-enemy01.ogg');
 
-                    break; // Bullet hits one enemy and disappears
+                    if (bullet.type !== 'pierce') {
+                        break; // Bullet hits one enemy and disappears
+                    }
                 }
             }
         }
@@ -733,6 +804,17 @@ export class Game {
     }
 
     handlePlayerDeath(enemy) {
+        if (this.player.hasShield) {
+            this.player.hasShield = false;
+            // Destroi inimigo se colidiu
+            if (enemy) {
+                this.explosions.push(new Explosion(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2));
+                enemy.markedForDeletion = true;
+            }
+            this.audio.playSFX('assets/audio/power-down.mp3'); // Ou outro som caso possua, usando explosion por enquanto se não houver
+            return; // Impede morte
+        }
+
         // Explosion at Player
         this.explosions.push(new Explosion(this.player.x + this.player.width / 2, this.player.y + this.player.height / 2));
 
@@ -830,7 +912,7 @@ export class Game {
         }
 
         // Draw PAUSED Overlay
-        if (this.paused) {
+        if (this.paused && !this.isTransitioningToShop && !this.shopOpen) {
             this.ctx.save();
             // Optional: Semi-transparent background for better readability
             this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
@@ -1000,6 +1082,14 @@ export class Game {
         this.showDevMessage = false;
         this.score = 0;
         this.distance = 0;
+        this.shopOpen = false;
+        this.shopVisited = false;
+
+        // Reset Player Upgrades
+        this.player.weaponType = 'single';
+        this.player.fireRateLevel = 0;
+        this.player.hasShield = false;
+        this.player.hasCoinMagnet = false;
 
         // Reset High Score Animation
         this.highScoreAnimState = 'HIDDEN';
@@ -1014,6 +1104,9 @@ export class Game {
         // Hide Game Over UI
         const gameOverScreen = document.getElementById('game-over-screen');
         if (gameOverScreen) gameOverScreen.classList.add('hidden');
+
+        const shopScreen = document.getElementById('shop-screen');
+        if (shopScreen) shopScreen.classList.add('hidden');
 
         // Do NOT show DOM Start Screen UI (as requested, only Canvas elements)
         const introScreen = document.getElementById('intro-screen');
@@ -1037,5 +1130,143 @@ export class Game {
             rect1.y < rect2.y + rect2.height &&
             rect1.y + rect1.height > rect2.y
         );
+    }
+
+    triggerShopFade() {
+        if (this.shopOpen || this.shopVisited) return;
+        this.shopVisited = true;
+
+        // Pausa completamente a física
+        this.setPaused(true);
+
+        // Oculta o texto "PAUSADO" padrão para não ficar na tela, mudando o flag ou desenhando outra coisa
+        // Podemos adicionar um estado especial ou usar um flag
+        this.isTransitioningToShop = true;
+
+        this.onFadeOutComplete = () => {
+            this.openShop();
+        };
+
+        this.fadeState = 'FADE_OUT';
+        this.fadeSpeed = 0.02; // Um pouco mais rápido para a loja
+    }
+
+    openShop() {
+        if (this.shopOpen) return;
+        this.shopOpen = true;
+
+        const shopScreen = document.getElementById('shop-screen');
+        if (shopScreen) shopScreen.classList.remove('hidden');
+
+        // Retorna o fade imediatamente para revelar a loja (o painel escuro)
+        // ou deixa escuro mesmo dependendo do estilo css da loja (o atual já é rgba 0.9)
+        // Mas como a loja tá por cima, podemos fazer FADE_IN do jogo atrás dela
+        this.fadeState = 'FADE_IN';
+        this.fadeSpeed = 0.05; // Fade in limpo atrás da loja
+
+        this.updateShopUI();
+    }
+
+    closeShop() {
+        if (!this.shopOpen) return;
+        this.shopOpen = false;
+        this.isTransitioningToShop = false;
+        this.setPaused(false);
+
+        const shopScreen = document.getElementById('shop-screen');
+        if (shopScreen) shopScreen.classList.add('hidden');
+    }
+
+    updateShopUI() {
+        const balanceEl = document.getElementById('shop-balance');
+        if (balanceEl) balanceEl.innerText = `GRANA: R$ ${this.score},00`;
+
+        const btnSpread = document.getElementById('btn-buy-spread');
+        const btnFireRate = document.getElementById('btn-buy-firerate');
+        const btnShield = document.getElementById('btn-buy-shield');
+        const btnPierce = document.getElementById('btn-buy-piercing');
+        const btnMagnet = document.getElementById('btn-buy-magnet');
+
+        if (btnSpread) {
+            btnSpread.disabled = this.score < 500 || this.player.weaponType === 'spread';
+            if (this.player.weaponType === 'spread') {
+                btnSpread.querySelector('.item-name').innerText = "TIRO TRIPLO (COMPRADO)";
+            } else {
+                btnSpread.querySelector('.item-name').innerText = "TIRO TRIPLO";
+            }
+        }
+        if (btnPierce) {
+            btnPierce.disabled = this.score < 1000 || this.player.weaponType === 'pierce';
+            if (this.player.weaponType === 'pierce') {
+                btnPierce.querySelector('.item-name').innerText = "MÍSSIL PERF. (COMPRADO)";
+            } else {
+                btnPierce.querySelector('.item-name').innerText = "MÍSSIL PERFURANTE";
+            }
+        }
+        if (btnFireRate) {
+            btnFireRate.disabled = this.score < 300 || this.player.fireRateLevel >= 3;
+            if (this.player.fireRateLevel >= 3) {
+                btnFireRate.querySelector('.item-name').innerText = "CADÊNCIA + (MÁXIMO)";
+            }
+        }
+        if (btnShield) {
+            btnShield.disabled = this.score < 800 || this.player.hasShield;
+            if (this.player.hasShield) {
+                btnShield.querySelector('.item-name').innerText = "ESCUDO (ATIVO)";
+            }
+        }
+        if (btnMagnet) {
+            btnMagnet.disabled = this.score < 700 || this.player.hasCoinMagnet;
+            if (this.player.hasCoinMagnet) {
+                btnMagnet.querySelector('.item-name').innerText = "ÍMÃ (ATIVO)";
+            } else {
+                btnMagnet.querySelector('.item-name').innerText = "ÍMÃ DE MOEDAS";
+            }
+        }
+    }
+
+    buySpread() {
+        if (this.score >= 500 && this.player.weaponType !== 'spread') {
+            this.score -= 500;
+            this.player.weaponType = 'spread';
+            this.audio.playCoinSound();
+            this.updateShopUI();
+        }
+    }
+
+    buyFireRate() {
+        if (this.score >= 300 && this.player.fireRateLevel < 3) {
+            this.score -= 300;
+            this.player.fireRateLevel++;
+            this.audio.playCoinSound();
+            this.updateShopUI();
+        }
+    }
+
+    buyShield() {
+        if (this.score >= 800 && !this.player.hasShield) {
+            this.score -= 800;
+            this.player.hasShield = true;
+            this.audio.playCoinSound();
+            this.updateShopUI();
+        }
+    }
+
+    buyPierce() {
+        if (this.score >= 1000 && this.player.weaponType !== 'pierce') {
+            this.score -= 1000;
+            this.player.weaponType = 'pierce';
+            this.audio.playCoinSound();
+            this.updateShopUI();
+        }
+    }
+
+    buyMagnet() {
+        if (this.score >= 700 && !this.player.hasCoinMagnet) {
+            this.score -= 700;
+            this.player.hasCoinMagnet = true;
+            this.audio.playCoinSound();
+            this.updateShopUI();
+        }
     }
 }

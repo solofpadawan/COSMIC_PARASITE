@@ -17,6 +17,10 @@ export class Projectile {
         } else if (this.type === 'giant_missile') {
             this.width = 45 * 4; // 225
             this.height = 22 * 4; // 110
+        } else if (this.type === 'pierce') {
+            this.width = 45 * 1.8; // Maior (81)
+            this.height = 22 * 1.8; // Maior (39.6)
+            // Velocidade pode ser a mesma ou um pouco mais rápido/devagar. Manteremos igual por enquanto
         } else {
             this.width = 45;
             this.height = 22;
@@ -32,6 +36,22 @@ export class Projectile {
             this.vx = directionOrVelocity.vx;
             this.vy = directionOrVelocity.vy;
             this.direction = (this.vx > 0) ? 'right' : 'left';
+        }
+
+        // Calculate rotation angle based on velocity vector
+        this.angle = Math.atan2(this.vy, this.vx);
+        // Correct angle for left-facing sprites if necessary, but since we scale(-1, 1) later
+        // we might just use the raw angle or absolute angle.
+        // If moving left, atan2 gives angle from positive X axis (e.g., 170 deg).
+        // Since we flip the rendering horizontally for left direction, 
+        // the visual rotation needs to be adjusted.
+        if (this.direction === 'left') {
+            // When flipped, the sprite inherently faces left (180 deg).
+            // We only need the extra tilt (vy correlation).
+            // If vy is positive (down), mathematically atan2 gives positive angle > 90.
+            // But when flipped contextually, tilting 'down' requires negative rotation in flipped space?
+            // Let's use Math.atan(vy/abs(vx)) to get just the local tilt.
+            this.angle = Math.atan2(this.vy, Math.abs(this.vx));
         }
 
         // Animation (Missile Only - Optimized spritesheet: 1721x1696→430x424, 25%)
@@ -57,7 +77,7 @@ export class Projectile {
         }
 
         // Animate Missile
-        if (this.type === 'missile' || this.type === 'giant_missile') {
+        if (this.type === 'missile' || this.type === 'giant_missile' || this.type === 'pierce') {
             this.frameTimer += 1 * frameScale;
             if (this.frameTimer > this.frameInterval) {
                 this.currentFrame++;
@@ -68,7 +88,7 @@ export class Projectile {
     }
 
     draw(ctx) {
-        if (this.type === 'missile' || this.type === 'giant_missile') {
+        if (this.type === 'missile' || this.type === 'giant_missile' || this.type === 'pierce') {
             if (Assets.missile.complete && Assets.missile.naturalWidth > 0) {
                 let col = this.currentFrame % this.cols;
                 let row = Math.floor(this.currentFrame / this.cols);
@@ -77,21 +97,26 @@ export class Projectile {
 
                 // Normal Missile Logic (and Giant Missile)
                 if (this.direction === 'left') {
-                    ctx.translate(this.x + this.width, this.y);
+                    // Translate to the center of the projectile for rotation
+                    ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
                     ctx.scale(-1, 1);
+                    ctx.rotate(this.angle); // Apply tilt
                     ctx.drawImage(
                         Assets.missile,
                         col * this.spriteWidth, row * this.spriteHeight,
                         this.spriteWidth, this.spriteHeight,
-                        0, -5, // Keep standard offset? For giant it's small but safe
+                        -this.width / 2, -this.height / 2 - 5, // Center offset
                         this.width, this.height
                     );
                 } else {
+                    // Translate to the center of the projectile for rotation
+                    ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
+                    ctx.rotate(this.angle); // Apply tilt
                     ctx.drawImage(
                         Assets.missile,
                         col * this.spriteWidth, row * this.spriteHeight,
                         this.spriteWidth, this.spriteHeight,
-                        this.x, this.y - 5,
+                        -this.width / 2, -this.height / 2 - 5, // Center offset
                         this.width, this.height
                     );
                 }

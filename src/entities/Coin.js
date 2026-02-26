@@ -20,7 +20,7 @@ export class Coin {
         this.maxLifeTime = 600; // 10s at 60fps
     }
 
-    update(dt) {
+    update(dt, player) {
         // Animation
         this.frameTimer++;
         if (this.frameTimer >= this.frameSpeed) {
@@ -39,6 +39,29 @@ export class Coin {
         this.lifeTime++;
         if (this.lifeTime > this.maxLifeTime) {
             this.markedForDeletion = true;
+        }
+
+        // Magnetism Logic
+        if (player && player.hasCoinMagnet) {
+            // Calculate center points
+            const cx = this.x + this.width / 2;
+            const cy = this.y + this.height / 2;
+            const px = player.x + player.width / 2;
+            const py = player.y + player.height / 2;
+
+            const dx = px - cx;
+            const dy = py - cy;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            // Magnet Radius of 500px translates into strong pull
+            const magnetRadius = 500;
+            if (dist < magnetRadius && dist > 0) {
+                // The closer the coin is, the faster it pulls, or just a constant magnet speed
+                const pullSpeed = 15;
+                this.x += (dx / dist) * pullSpeed;
+                // Important: adjust baseY so the sine wave doesn't rubber-band it back down
+                this.baseY += (dy / dist) * pullSpeed;
+            }
         }
     }
 
