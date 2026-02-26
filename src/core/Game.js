@@ -441,7 +441,7 @@ export class Game {
 
         // --- Wave 03 Logic ---
         // Spawn when Easter Egg has passed the middle and is further to the left (1/4 of the screen)
-        if (this.environment.easterEgg && this.environment.easterEgg.x <= CANVAS_WIDTH / 9 && !this.wave03Spawned) {
+        if (this.environment.easterEgg && this.environment.easterEgg.x <= CANVAS_WIDTH / 18 && !this.wave03Spawned) {
             this.spawnWave03();
             this.wave03Spawned = true;
         }
@@ -569,7 +569,11 @@ export class Game {
                 if (this.player.speed > 5) this.player.speed = 5;
                 if (this.player.bulletSpeedMultiplier > 2.5) this.player.bulletSpeedMultiplier = 2.5;
 
-                this.audio.playSFX('assets/audio/speed-up.mp3'); // Play speedup sound
+                this.audio.playSFX('assets/audio/speed-up-sound.mp3');
+                setTimeout(() => {
+                    this.audio.playSFX('assets/audio/speed-up-voice.mp3');
+                }, 300); // Toca a voz 300ms (0.3s) depois do efeito sonoro
+
                 this.speedUps.splice(i, 1);
             }
         }
@@ -900,7 +904,7 @@ export class Game {
             // startY, phaseOffset
             // To make them follow each other exactly in a snake:
             // same Y, phaseOffset = i * -1.0; 
-            this.enemies.push(new Enemy02(i * delayBetween, 250, i * -2.5));
+            this.enemies.push(new Enemy02(i * delayBetween, 250, i * -0.2));
         }
     }
 

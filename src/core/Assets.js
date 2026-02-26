@@ -91,9 +91,13 @@ export function loadAssets(onProgress) {
         Assets.audio.explosion.src = 'assets/audio/explosion-enemy01.ogg';
         Assets.audio.explosion.oncanplaythrough = onLoad;
 
-        Assets.audio.speedUp = new Audio();
-        Assets.audio.speedUp.src = 'assets/audio/speed-up.mp3';
-        Assets.audio.speedUp.oncanplaythrough = onLoad;
+        Assets.audio.speedUpVoice = new Audio();
+        Assets.audio.speedUpVoice.src = 'assets/audio/speed-up-voice.mp3';
+        Assets.audio.speedUpVoice.oncanplaythrough = onLoad;
+
+        Assets.audio.speedUpSound = new Audio();
+        Assets.audio.speedUpSound.src = 'assets/audio/speed-up-sound.mp3';
+        Assets.audio.speedUpSound.oncanplaythrough = onLoad;
 
         // Fallback in case audio fails or formats weirdly
         Assets.audio.shoot.onerror = () => {
