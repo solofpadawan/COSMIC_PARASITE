@@ -434,10 +434,11 @@ export class Environment {
             this.shopActive = true;
 
             // Find a ground tile boundary that is safely off-screen to the right,
-            // far enough to be exactly AFTER the Easter Egg.
+            // Far enough to be exactly AFTER the Easter Egg.
+            // 400 pixels of gap after the statue.
             let targetX = CANVAS_WIDTH;
             if (this.easterEgg) {
-                targetX = this.easterEgg.x + this.easterEgg.width + 1000;
+                targetX = this.easterEgg.x + this.easterEgg.width + 400; // Ajuste o 400 para aumentar/diminuir o buraco
             }
 
             let tileX = this.groundLoop.x;

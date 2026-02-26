@@ -492,7 +492,7 @@ export class Game {
         }
 
         // Check if Easter Egg exited the screen
-        if (this.easterEggSpawned && !this.environment.easterEgg && !this.showDevMessage) {
+        if (this.distance >= 8000 && !this.showDevMessage) {
             this.showDevMessage = true;
         }
 
