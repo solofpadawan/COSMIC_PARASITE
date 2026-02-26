@@ -569,7 +569,7 @@ export class Game {
                 if (this.player.speed > 5) this.player.speed = 5;
                 if (this.player.bulletSpeedMultiplier > 2.5) this.player.bulletSpeedMultiplier = 2.5;
 
-                this.audio.playCoinSound(); // Reusing coin sound or add a powerup sound later
+                this.audio.playSFX('assets/audio/speed-up.mp3'); // Play speedup sound
                 this.speedUps.splice(i, 1);
             }
         }
@@ -900,7 +900,7 @@ export class Game {
             // startY, phaseOffset
             // To make them follow each other exactly in a snake:
             // same Y, phaseOffset = i * -1.0; 
-            this.enemies.push(new Enemy02(i * delayBetween, 250, i * -1.2));
+            this.enemies.push(new Enemy02(i * delayBetween, 250, i * -2.5));
         }
     }
 

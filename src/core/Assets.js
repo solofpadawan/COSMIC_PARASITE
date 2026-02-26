@@ -25,9 +25,9 @@ export const Assets = {
 export function loadAssets(onProgress) {
     return new Promise((resolve) => {
         let loaded = 0;
-        // Base images (11) + Turn (5) + Audio (2) + Enemy (45) + Explosion (28) + Coin (23) + Enemy02 (48) + SpeedUp (47) + groundShop (1)
-        // 11 + 5 + 2 + 45 + 28 + 23 + 48 + 47 + 1 = 210
-        const total = 210;
+        // Base images (11) + Turn (5) + Audio (3) + Enemy (45) + Explosion (28) + Coin (23) + Enemy02 (48) + SpeedUp (47) + groundShop (1)
+        // 11 + 5 + 3 + 45 + 28 + 23 + 48 + 47 + 1 = 211
+        const total = 211;
 
         const onLoad = () => {
             loaded++;
@@ -90,6 +90,10 @@ export function loadAssets(onProgress) {
 
         Assets.audio.explosion.src = 'assets/audio/explosion-enemy01.ogg';
         Assets.audio.explosion.oncanplaythrough = onLoad;
+
+        Assets.audio.speedUp = new Audio();
+        Assets.audio.speedUp.src = 'assets/audio/speed-up.mp3';
+        Assets.audio.speedUp.oncanplaythrough = onLoad;
 
         // Fallback in case audio fails or formats weirdly
         Assets.audio.shoot.onerror = () => {
