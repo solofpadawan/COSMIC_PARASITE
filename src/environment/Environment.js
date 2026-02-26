@@ -3,14 +3,42 @@ import { Assets } from '../core/Assets.js';
 
 export class ParallaxLayer {
     constructor(image, speed, y = 0, scale = 1.0) {
-        this.image = image;
         this.speed = speed;
         this.x = 0;
         this.y = y;
         this.scale = scale;
         // Calculate the effective width/height of one tile
+        // Assuming the base background image dictates the width scale
         this.width = image.width * scale;
         this.height = image.height * scale;
+
+        // Sequence format: { image, startIndex, endIndex }
+        this.sequence = [
+            { image: image, startIndex: 0, endIndex: Infinity }
+        ];
+    }
+
+    appendSequence(newImage, repeatCount = 1) {
+        // Absolute index of the tile currently touching the rightmost edge of the screen
+        let lastVisibleIndex = Math.floor((CANVAS_WIDTH - this.x) / this.width);
+
+        let lastItem = this.sequence[this.sequence.length - 1];
+        let startNewIndex = lastVisibleIndex + 1;
+
+        if (lastItem.endIndex === Infinity) {
+            // Cut off the infinite background precisely after what's currently visible
+            lastItem.endIndex = Math.max(lastVisibleIndex, lastItem.startIndex);
+            startNewIndex = lastItem.endIndex + 1;
+        } else {
+            // If the last item was finite, just append tightly after it finishes
+            startNewIndex = lastItem.endIndex + 1;
+        }
+
+        this.sequence.push({
+            image: newImage,
+            startIndex: startNewIndex,
+            endIndex: repeatCount === Infinity ? Infinity : startNewIndex + repeatCount - 1
+        });
     }
 
     update(baseSpeed, dt) {
@@ -21,31 +49,43 @@ export class ParallaxLayer {
         // This keeps existing speed values roughly valid relative to 60fps
         const frameScale = dt * 60;
         this.x -= this.speed * baseSpeed * frameScale;
-
-        // Reset when the first tile has completely scrolled off-screen
-        if (this.x <= -this.width) {
-            this.x += this.width;
-        }
     }
 
     draw(ctx) {
-        // Draw tiles from current x position until we cover the screen width
-        let currentDrawX = this.x;
-
         // Safety break to prevent infinite loops if width is 0 (shouldn't happen)
         if (this.width <= 0) return;
 
-        while (currentDrawX < CANVAS_WIDTH) {
-            // Only draw if the tile is at least partially visible on the right side
-            // (Standard behavior: draw if x < canvas_width)
+        let firstVisibleTileIndex = Math.floor(-this.x / this.width);
+        let currentDrawX = this.x + (firstVisibleTileIndex * this.width);
+        let currentTileIndex = firstVisibleTileIndex;
 
+        while (currentDrawX < CANVAS_WIDTH) {
+            // Find which sequence item should be drawn for currentTileIndex
+            // Fallback to the very first sequence image if none match (should mathematically always match)
+            let imgToDraw = this.sequence[0].image;
+
+            for (let seq of this.sequence) {
+                if (currentTileIndex >= seq.startIndex && currentTileIndex <= seq.endIndex) {
+                    imgToDraw = seq.image;
+                    break;
+                }
+            }
+
+            // Cleanup memory for old sequences that scroll entirely off-screen
+            // Keep at least one sequence to not break the array
+            while (this.sequence.length > 1 && this.sequence[0].endIndex < firstVisibleTileIndex) {
+                this.sequence.shift();
+            }
+
+            // Always draw if the tile is at least partially visible on the screen
             ctx.drawImage(
-                this.image,
-                0, 0, this.image.width, this.image.height, // Source
+                imgToDraw,
+                0, 0, imgToDraw.width, imgToDraw.height, // Source
                 Math.floor(currentDrawX), this.y,        // Destination
                 this.width, this.height                  // Destination Size
             );
             currentDrawX += this.width;
+            currentTileIndex++;
         }
     }
 }
@@ -241,7 +281,28 @@ export class Environment {
             this.currentBg = this.bgPlay;
         } else {
             this.currentBg = this.bgStart;
+            this.bgPlay.sequence = [
+                { image: this.bgPlay.sequence[0].image, startIndex: 0, endIndex: Infinity }
+            ];
         }
+    }
+
+    queueBgTile(assets) {
+        // Enqueue the first part of the rusty sequence (duration: 1 tile)
+        this.bgPlay.appendSequence(assets.cave_bg_rusty_part1, 1);
+        // Enqueue the second part (duration: 1 tile)
+        this.bgPlay.appendSequence(assets.cave_bg_rusty_part2, 1);
+        // Enqueue the third part (duration: 1 tile)
+        this.bgPlay.appendSequence(assets.cave_bg_rusty_part3, 1);
+        // Command to go back to the standard dark cave and repeat to Infinity afterwards
+        this.bgPlay.appendSequence(assets.cave_bg_play, Infinity);
+    }
+
+    queueRustyBgFull(assets) {
+        // Enqueue the full rusty background (duration: 1 tile)
+        this.bgPlay.appendSequence(assets.cave_bg_rusty_full, 1);
+        // Command to go back to the standard dark cave and repeat to Infinity afterwards
+        //this.bgPlay.appendSequence(assets.cave_bg_play, Infinity);
     }
 
     update(dt, shouldAdvanceGround = true) {

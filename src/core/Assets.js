@@ -4,6 +4,10 @@ export const Assets = {
     missile: new Image(),
     cave_bg: new Image(),
     cave_bg_play: new Image(),
+    cave_bg_rusty_part1: new Image(),
+    cave_bg_rusty_part2: new Image(),
+    cave_bg_rusty_part3: new Image(),
+    cave_bg_rusty_full: new Image(),
     mist: new Image(),
     alien_spit: new Image(),
     ground: new Image(),
@@ -25,9 +29,9 @@ export const Assets = {
 export function loadAssets(onProgress) {
     return new Promise((resolve) => {
         let loaded = 0;
-        // Base images (11) + Turn (5) + Audio (3) + Enemy (45) + Explosion (28) + Coin (23) + Enemy02 (48) + SpeedUp (47) + groundShop (1)
-        // 11 + 5 + 3 + 45 + 28 + 23 + 48 + 47 + 1 = 211
-        const total = 211;
+        // Base images (16) + Turn (5) + Audio (4) + Enemy (45) + Explosion (28) + Coin (23) + Enemy02 (48) + SpeedUp (47)
+        // 16 + 5 + 4 + 45 + 28 + 23 + 48 + 47 = 216
+        const total = 216;
 
         const onLoad = () => {
             loaded++;
@@ -52,6 +56,16 @@ export function loadAssets(onProgress) {
 
         Assets.cave_bg_play.src = 'assets/images/cave_bg_huge.png'; // New for Play
         Assets.cave_bg_play.onload = onLoad;
+
+        Assets.cave_bg_rusty_part1.src = 'assets/images/cave_bg_rusty_part1_v2.png';
+        Assets.cave_bg_rusty_part1.onload = onLoad;
+        Assets.cave_bg_rusty_part2.src = 'assets/images/cave_bg_rusty_part2_v2.png';
+        Assets.cave_bg_rusty_part2.onload = onLoad;
+        Assets.cave_bg_rusty_part3.src = 'assets/images/cave_bg_rusty_part3_v2.png';
+        Assets.cave_bg_rusty_part3.onload = onLoad;
+
+        Assets.cave_bg_rusty_full.src = 'assets/images/cave_bg_rusty.png';
+        Assets.cave_bg_rusty_full.onload = onLoad;
 
         Assets.ground.src = 'assets/images/ground_v4.png';
         Assets.ground.onload = onLoad;

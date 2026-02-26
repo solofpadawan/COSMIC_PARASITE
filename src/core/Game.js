@@ -33,6 +33,7 @@ export class Game {
         this.wave02Spawned = false;
         this.wave03Spawned = false;
         this.easterEggSpawned = false;
+        this.rustyBgTriggered = false;
 
         // Barrage State
         this.barrageActive = false;
@@ -399,6 +400,7 @@ export class Game {
         this.audio.playMusic('assets/audio/stage01.ogg');
 
         this.environment.setMode('PLAY'); // Switch to Huge BG
+
         this.environment.reset(); // Restart ground timer
         this.player.x = 100;
         this.player.y = 200;
@@ -425,11 +427,26 @@ export class Game {
             this.player.update(dt);
         }
 
-        // --- Wave 01 Logic ---
-        // Was 600 frames. Now 1000m (1.0km)
+        // --- Wave 01 Logic (Cabeção) ---
+        // Dynamically append the rusty tile precisely before this wave spawns
+        // Wave 1 spawns at 600m, so we trigger the 3-part rusty sequence at 450m
+        if (this.distance >= 450 && !this.rustyBgTriggered) {
+            this.environment.queueBgTile(Assets);
+            this.rustyBgTriggered = true;
+        }
+
+        // Was 600 frames. Now 1000m (1.0km) -> Wave 1 spawns at 600m
         if (this.distance >= 600 && !this.wave01Spawned) {
             this.spawnWave01();
             this.wave01Spawned = true;
+        }
+
+        // --- Rusty Full Background Trigger ---
+        // Dynamically show the full rusty background around midway before Wave 2
+        // Distance matches roughly a lull at 1200m
+        if (this.distance >= 0 && !this.rustyFullBgTriggered) {
+            this.environment.queueRustyBgFull(Assets);
+            this.rustyFullBgTriggered = true;
         }
 
         // --- Wave 02 Logic ---
@@ -447,7 +464,7 @@ export class Game {
         }
 
         // Easter Egg (After Wave 2/3)
-        // Was 1600 frames. Now 2600m (2.6km)
+        // Was 1600 frames. Now 2600m (2.6km) -> 3700m
         if (this.distance >= 3700 && !this.easterEggSpawned) {
             this.environment.spawnEasterEgg(Assets);
             this.environment.spawnShop();
@@ -492,7 +509,7 @@ export class Game {
         }
 
         // Check if Easter Egg exited the screen
-        if (this.distance >= 8000 && !this.showDevMessage) {
+        if (this.distance >= 20000 && !this.showDevMessage) {
             this.showDevMessage = true;
         }
 
