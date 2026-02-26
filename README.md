@@ -16,6 +16,18 @@ Pilote seu helicóptero espacial, destrua inimigos alienígenas e sobreviva o m�
 
 *O jogo também possui suporte básico para Gamepad (detectado no menu inicial).*
 
+### 🛒 Loja de Armamentos (Web Shop)
+
+Ao longo de sua jornada, você encontrará uma Loja para aprimorar seu helicóptero. Após a passagem do monolito misterioso, fique atento ao cenário!
+Aproxime-se da entrada da loja para ativá-ela. A loja pausará o jogo e permitirá que você compre upgrades usando sua **GRANA** (score) acumulada.
+
+**Upgrades Disponíveis:**
+*   **Tiro Triplo:** R$ 500,00 - Dispara três mísseis simultâneos abrindo a área de acerto.
+*   **Cadência +:** R$ 300,00 - Aumenta a velocidade de disparo máximo (acumulativo até 3 níveis).
+*   **Escudo Extra:** R$ 800,00 - Uma proteção energética que absorve **1 hit fatal** de inimigos ou de colisões com o cenário.
+*   **Míssil Perfurante:** R$ 1000,00 - Substitui seu tiro por um míssil gigante (1.8x maior) que atravessa e destrói múltiplos inimigos de uma vez.
+*   **Ímã de Moedas:** R$ 700,00 - Atualização passiva. Ativa uma gravidade artificial no helicóptero puxando todas as moedas próximas automaticamente para a nave.
+
 ## 🛠️ Tecnologias Utilizadas
 
 Este projeto foi construído utilizando tecnologias web modernas sem dependência de frameworks pesados no frontend:

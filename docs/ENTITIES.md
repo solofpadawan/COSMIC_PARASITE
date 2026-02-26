@@ -24,6 +24,12 @@ As entidades possuem um controle de tempo interno (ex: `this.frameTimer` e `this
 - Possui inércia e aceleração na movimentação pelo canvas. 
 - Gerencia seu próprio array de disparos (`this.bullets`). Toda vez que ele atira, um novo projétil é guardado em sua matriz, a qual o `Game.js` verifica ativamente para checar colisões com inimigos.
 - Responde a inclinação do sprite nativamente ao detectar movimentos do teclado (inclina pra frente e inclina pra trás).
+- Armazena as flags de Upgrades passivos e armas compradas na Loja (ex: `weaponType`, `hasCoinMagnet`).
+
+## Projéteis (`Projectile.js`)
+- Instanciados pelo `Player` ou por Inimigos.
+- Calculam seu próprio ângulo de voo usando vetores (`vx`, `vy`) e rotacionam visualmente seus sprites para corresponder à direção real do disparo.
+- Alguns itens especiais como o "Míssil Perfurante" possuem escala maior e ignoram a lixeira por colisão no `Game.js`.
 
 ## Inimigos (`Enemy.js` e `Enemy02.js`)
 - Os inimigos nascem fora da tela do lado direito (`CANVAS_WIDTH + offset`).
@@ -34,6 +40,7 @@ As entidades possuem um controle de tempo interno (ex: `this.frameTimer` e `this
 ## Itens (`Coin.js` e `SpeedUp.js`)
 - Itens largados, ou gerados aleatoriamente pelo `Game.js` através de cooldowns de tempo fixos (`speedUpTimer`).
 - Se intersetados com o `Player`, desencadeiam a evolução do status de pontos (`Game.score += 100`) e/ou aumentam gradualmente os status multiplicadores de velocidade do Jogador, além de serem imediatamente deletados.
+- As **Moedas (`Coin.js`)** possuem lógica de atração (magnetismo). Se entrarem em um certo raio e o jogador tiver o Ímã ativo, elas voam até ele em vez de quicar lentamente.
 
 ## Controle de Resíduos
 A lixeira de todas as entidades atua fora-da-tela, qualquer projétil que passe da largura física do Canvas ou qualquer lixo abandonado do outro lado (`x < -width`) tem o `markedForDeletion` setado para `true` para salvar memória instantaneamente.
