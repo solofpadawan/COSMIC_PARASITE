@@ -430,7 +430,7 @@ export class Game {
         // --- Wave 01 Logic (Cabeção) ---
         // Dynamically append the rusty tile precisely before this wave spawns
         // Wave 1 spawns at 600m, so we trigger the 3-part rusty sequence at 450m
-        if (this.distance >= 450 && !this.rustyBgTriggered) {
+        if (this.distance >= 200 && !this.rustyBgTriggered) {
             this.environment.queueBgTile(Assets);
             this.rustyBgTriggered = true;
         }
@@ -441,6 +441,7 @@ export class Game {
             this.wave01Spawned = true;
         }
 
+        /*
         // --- Rusty Full Background Trigger ---
         // Dynamically show the full rusty background around midway before Wave 2
         // Distance matches roughly a lull at 1200m
@@ -448,6 +449,7 @@ export class Game {
             this.environment.queueRustyBgFull(Assets);
             this.rustyFullBgTriggered = true;
         }
+        */
 
         // --- Wave 02 Logic ---
         // Was 940 frames. Now 1700m (1.5km)
