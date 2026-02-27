@@ -23,6 +23,8 @@ export const Assets = {
     enemy01: [], // Array for Enemy 01 frames
     enemy02: [], // Array for Enemy 02 frames
     explosionEnemy01: [], // Explosion frames
+    alienHand: new Image(), // Shop selector hand
+    floatingIsland: new Image(), // Floating island obstacle
     audio: {
         shoot: new Audio(),
         explosion: new Audio()
@@ -32,9 +34,9 @@ export const Assets = {
 export function loadAssets(onProgress) {
     return new Promise((resolve) => {
         let loaded = 0;
-        // Base images (17) + Turn (5) + Audio (4) + Enemy (45) + Explosion (28) + Coin (23) + Enemy02 (48) + SpeedUp (47)
-        // 17 + 5 + 4 + 45 + 28 + 23 + 48 + 47 = 217
-        const total = 217;
+        // Base images (19) + Turn (5) + Audio (4) + Enemy (45) + Explosion (28) + Coin (23) + Enemy02 (48) + SpeedUp (47)
+        // 19 + 5 + 4 + 45 + 28 + 23 + 48 + 47 = 219
+        const total = 219;
 
         const onLoad = () => {
             loaded++;
@@ -96,6 +98,12 @@ export function loadAssets(onProgress) {
 
         Assets.logo.src = 'assets/images/logo_v5.png';
         Assets.logo.onload = onLoad;
+
+        Assets.alienHand.src = 'assets/images/alien_hand.png';
+        Assets.alienHand.onload = onLoad;
+
+        Assets.floatingIsland.src = 'assets/images/floating_island01.png';
+        Assets.floatingIsland.onload = onLoad;
 
         // Load Turn Frames (01.png to 05.png)
         for (let i = 1; i <= 5; i++) {

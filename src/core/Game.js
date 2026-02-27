@@ -8,6 +8,7 @@ import { Projectile } from '../entities/Projectile.js';
 import { Explosion } from '../entities/Explosion.js';
 import { Coin } from '../entities/Coin.js';
 import { SpeedUp } from '../entities/SpeedUp.js';
+import { FloatingIsland } from '../entities/FloatingIsland.js';
 import { Environment } from '../environment/Environment.js';
 import { ScoreManager } from './ScoreManager.js';
 import { CANVAS_WIDTH, CANVAS_HEIGHT, GAME_STATE, Keys } from '../utils/Constants.js';
@@ -56,6 +57,9 @@ export class Game {
         this.lastPauseState = false; // Latch for input
         this.score = 0;
         this.distance = 0; // Distance in meters
+
+        this.floatingIslands = [];
+        this.islandSpawnedAfterShop = false;
 
         this.state = GAME_STATE.START;
         this.startScreenTimer = 0; // Cooldown for start screen inputs
@@ -282,13 +286,6 @@ export class Game {
             this.ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
         }
 
-        // Draw FPS
-        this.ctx.save();
-        this.ctx.fillStyle = 'cyan';
-        this.ctx.font = 'bold 16px monospace';
-        this.ctx.textAlign = 'right';
-        this.ctx.fillText(`FPS: ${this.fps}`, CANVAS_WIDTH - 10, 20);
-        this.ctx.restore();
     }
 
     updateStartScreen(dt) {
@@ -647,8 +644,22 @@ export class Game {
         // --- Post-Shop Waves ---
         if (this.environment.shopActive) {
             const shopDrawW = Assets.groundShop.width * this.environment.groundScale;
+
+            // Trigger island spawn when shop is almost off-screen
+            if (this.environment.shopX + shopDrawW < 600 && !this.islandSpawnedAfterShop) {
+                const islandX = CANVAS_WIDTH + 200;
+
+                // Create temp instance to get dimensions or use the asset directly
+                const scale = 0.65;
+                const islandHeight = Assets.floatingIsland.height * scale;
+                const islandY = (CANVAS_HEIGHT / 2) - (islandHeight / 2);
+
+                const islandSpeed = this.environment.groundSpeed * this.environment.baseSpeed;
+                this.floatingIslands.push(new FloatingIsland(islandX, islandY, islandSpeed));
+                this.islandSpawnedAfterShop = true;
+            }
+
             // Trigger first wave when the shop is almost off-screen (left edge < 0)
-            // Wait until it's comfortably mostly off screen, e.g., shopX + shopDrawW < 100
             if (this.environment.shopX + shopDrawW < 500 && !this.postShopWave1Spawned) {
                 this.spawnWave04();
                 this.postShopWave1Spawned = true;
@@ -661,6 +672,14 @@ export class Game {
             if (this.postShopWave2Timer <= 0) {
                 this.spawnWave05();
                 this.postShopWave2Spawned = true;
+            }
+        }
+
+        // Update Floating Islands
+        for (let i = this.floatingIslands.length - 1; i >= 0; i--) {
+            this.floatingIslands[i].update(dt);
+            if (this.floatingIslands[i].markedForDeletion) {
+                this.floatingIslands.splice(i, 1);
             }
         }
 
@@ -835,6 +854,14 @@ export class Game {
             if (!this.godMode) this.handlePlayerDeath();
         }
 
+        // 5. Collision with Floating Islands
+        for (let island of this.floatingIslands) {
+            if (this.checkCollision(this.player, island.getBounds())) {
+                if (!this.godMode) this.handlePlayerDeath();
+                break;
+            }
+        }
+
         // 5. Giant Missile vs Easter Egg (Destroy Missile)
         this.enemyProjectiles.forEach((proj, index) => {
             if (proj.x > CANVAS_WIDTH || proj.x + proj.width < 0) return;
@@ -954,6 +981,7 @@ export class Game {
         this.enemyProjectiles.forEach(proj => proj.draw(this.ctx));
         this.coins.forEach(coin => coin.draw(this.ctx));
         this.speedUps.forEach(pu => pu.draw(this.ctx));
+        this.floatingIslands.forEach(island => island.draw(this.ctx));
         this.explosions.forEach(explosion => explosion.draw(this.ctx));
 
         // Draw Score
