@@ -1,46 +1,48 @@
-# Entidades do Jogo (Entities)
+> 🇧🇷 *Read this in [Portuguese](ENTITIES-ptBR.md)*
 
-As "Entidades" são todas as peças dinâmicas que atuam diretamente na gameplay do Cosmic Parasite (tudo o que se move de forma autônoma, atira ou pode ser destruído). Elas residem na pasta `src/entities/`.
+# Game Entities
 
-## Estrutura Padrão
+"Entities" are all the dynamic pieces that act directly in Cosmic Parasite's gameplay (everything that moves autonomously, shoots, or can be destroyed). They reside in the `src/entities/` folder.
 
-Virtualmente todas as entidades compartilham as mesmas propriedades lógicas em seus construtores e o mesmo padrão de métodos (`update()` e `draw()`).
+## Standard Structure
 
-### Propriedades Base:
-- `x` e `y`: Coordenadas de posição na tela. O ponto de origem (0,0) é sempre no canto superior esquerdo do sprite.
-- `width` e `height`: Tamanho físico da bounding box, usado para colisões.
-- `speed` ou variações de velocidade nos eixos: O fator multiplicador que age em cima do `dt` (delta time) repassado pelo `Game.js`
-- `markedForDeletion`: Uma flag booleana. Quando setada acidental ou propositalmente para `true`, o `Game.js` vai limpar este objeto da memória no próximo quadro, efetivamente removendo a entidade do jogo.
+Virtually all entities share the same logical properties in their constructors and the same method pattern (`update()` and `draw()`).
 
-### Animações (Spritesheets Frame a Frame)
-Ao contrário de desenhar uma grade numa sprite sheet grande, o Cosmic Parasite lida com animações carregando cada frame individual (`Assets.js` carrega matrizes/arrays gigantes de frames em propriedades iteráveis).
+### Base Properties:
+- `x` and `y`: Position coordinates on the screen. The origin point (0,0) is always at the top left corner of the sprite.
+- `width` and `height`: Physical size of the bounding box, used for collisions.
+- `speed` or axis speed variations: The multiplier factor that acts upon the `dt` (delta time) passed by `Game.js`.
+- `markedForDeletion`: A boolean flag. When accidentally or intentionally set to `true`, `Game.js` will clear this object from memory in the next frame, effectively removing the entity from the game.
 
-As entidades possuem um controle de tempo interno (ex: `this.frameTimer` e `this.frameInterval`) para trocar qual elemento do array deve ser enviado para o canvas, resultando numa animação limpa.
+### Animations (Frame-by-Frame Spritesheets)
+Instead of drawing a grid on a large spritesheet, Cosmic Parasite handles animations by loading each individual frame (`Assets.js` loads huge matrices/arrays of frames into iterable properties).
+
+Entities have an internal time control (e.g., `this.frameTimer` and `this.frameInterval`) to switch which array element should be sent to the canvas, resulting in clean animation.
 
 ---
 
-## O Jogador (`Player.js`)
-- Representa o helicóptero.
-- Possui inércia e aceleração na movimentação pelo canvas. 
-- Gerencia seu próprio array de disparos (`this.bullets`). Toda vez que ele atira, um novo projétil é guardado em sua matriz, a qual o `Game.js` verifica ativamente para checar colisões com inimigos.
-- Responde a inclinação do sprite nativamente ao detectar movimentos do teclado (inclina pra frente e inclina pra trás).
-- Armazena as flags de Upgrades passivos e armas compradas na Loja (ex: `weaponType`, `hasCoinMagnet`).
+## The Player (`Player.js`)
+- Represents the helicopter.
+- Has inertia and acceleration when moving across the canvas. 
+- Manages its own array of shots (`this.bullets`). Every time it shoots, a new projectile is stored in its matrix, which `Game.js` actively checks for collisions with enemies.
+- Responds natively to sprite tilt upon detecting keyboard movements (tilts forward and tilts backward).
+- Stores the flags for passive Upgrades and weapons bought in the Shop (e.g., `weaponType`, `hasCoinMagnet`).
 
-## Projéteis (`Projectile.js`)
-- Instanciados pelo `Player` ou por Inimigos.
-- Calculam seu próprio ângulo de voo usando vetores (`vx`, `vy`) e rotacionam visualmente seus sprites para corresponder à direção real do disparo.
-- Alguns itens especiais como o "Míssil Perfurante" possuem escala maior e ignoram a lixeira por colisão no `Game.js`.
+## Projectiles (`Projectile.js`)
+- Instantiated by the `Player` or by Enemies.
+- Calculate their own flight angle using vectors (`vx`, `vy`) and visually rotate their sprites to match the actual shot direction.
+- Some special items like the "Piercing Missile" have larger scaling and bypass the garbage collection by collision in `Game.js`.
 
-## Inimigos (`Enemy.js` e `Enemy02.js`)
-- Os inimigos nascem fora da tela do lado direito (`CANVAS_WIDTH + offset`).
-- Possuem ciclos de vida curtos e lógicas de movimentação que variam (retas ou ondas senoidais alterando o eixo Y).
-- Se gerenciados com inteligência artificial, podem mirar no jogador e spawnar projéteis de danos massivos.
-- Em caso de colisão com projéteis do jogador: sua flag `markedForDeletion` é ativada, eles emitem o comando para a criação pontual das entidades de `Coin.js` e `Explosion.js`, finalizando a sequência.
+## Enemies (`Enemy.js` and `Enemy02.js`)
+- Enemies spawn off-screen on the right side (`CANVAS_WIDTH + offset`).
+- They have short lifecycles and movement logics that vary (straight lines or sine waves altering the Y axis).
+- If managed with artificial intelligence, they can aim at the player and spawn massive damage projectiles.
+- Upon collision with player projectiles: their `markedForDeletion` flag is activated, they issue the command for proper creation of `Coin.js` and `Explosion.js` instances, finishing the sequence.
 
-## Itens (`Coin.js` e `SpeedUp.js`)
-- Itens largados, ou gerados aleatoriamente pelo `Game.js` através de cooldowns de tempo fixos (`speedUpTimer`).
-- Se intersetados com o `Player`, desencadeiam a evolução do status de pontos (`Game.score += 100`) e/ou aumentam gradualmente os status multiplicadores de velocidade do Jogador, além de serem imediatamente deletados.
-- As **Moedas (`Coin.js`)** possuem lógica de atração (magnetismo). Se entrarem em um certo raio e o jogador tiver o Ímã ativo, elas voam até ele em vez de quicar lentamente.
+## Items (`Coin.js` and `SpeedUp.js`)
+- Dropped items, or randomly generated by `Game.js` through fixed time cooldowns (`speedUpTimer`).
+- If intersected with the `Player`, they trigger point status evolution (`Game.score += 100`) and/or gradually increase the Player's speed multiplier stats, besides being subsequently deleted.
+- **Coins (`Coin.js`)** have an attraction (magnetism) logic. If they enter a certain radius and the player has the Magnet active, they fly towards it instead of bouncing slowly.
 
-## Controle de Resíduos
-A lixeira de todas as entidades atua fora-da-tela, qualquer projétil que passe da largura física do Canvas ou qualquer lixo abandonado do outro lado (`x < -width`) tem o `markedForDeletion` setado para `true` para salvar memória instantaneamente.
+## Garbage Control
+The garbage collector for all entities acts off-screen. Any projectile that passes the physical width of the Canvas or any discarded garbage on the other side (`x < -width`) gets `markedForDeletion` set to `true` to save memory cleanly.

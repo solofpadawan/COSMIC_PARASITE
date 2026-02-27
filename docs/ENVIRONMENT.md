@@ -1,38 +1,40 @@
-# Ambiente e Cenário (Environment)
+> 🇧🇷 *Read this in [Portuguese](ENVIRONMENT-ptBR.md)*
 
-O Cosmic Parasite utiliza um sistema pesado de ilusão de ótica 2D chamado **Efeito Parallax** para simular profundidade e movimento sem nunca precisar de um mapa gigantesco estático.
+# Environment and Scenery
 
-O arquivo principal responsável por essa mágica é o `src/environment/Environment.js`.
+Cosmic Parasite uses a heavy 2D optical illusion system called **Parallax Effect** to simulate depth and movement without ever needing a gigantic static map.
+
+The main file responsible for this magic is `src/environment/Environment.js`.
 
 ## ParallaxLayer
 
-A classe base `ParallaxLayer` pega uma imagem (Textura) e a repete indefinidamente na tela.
-Ela possui a propriedade `speed` que determina "o quão lento" essa camada específica deve se mover em relação a velocidade global do jogo.
-- **Camadas distantes** (como as estrelas e a caverna ao fundo): Roteiam de forma bem lenta e suave.
-- **Camadas intermediárias** (nívoa/mist): Movem-se com uma certa translucidez.
-- **Chão (GroundLayer)**: A camada mais próxima do jogador, movendo-se na mesma velocidade sentida pelas Entidades instanciadas do inimigo e do jogador.
+The base class `ParallaxLayer` takes an image (Texture) and repeats it indefinitely on the screen.
+It has the `speed` property that determines "how slowly" this specific layer should move in relation to the global game speed.
+- **Distant layers** (like the stars and the background cave): Rotate very slowly and smoothly.
+- **Intermediate layers** (mist): Move with a certain translucency.
+- **Ground (GroundLayer)**: The layer closest to the player, moving at the same speed felt by the instantiated Entities of the enemy and the player.
 
-## O Controle do Chão e Introduções
+## Ground Control and Introductions
 
-O jogo não é apenas um loop contínuo infinito. A classe `Environment` injeta momentos cinematográficos e elementos únicos no cenário de acordo com a distância (metros) percorrida pelo jogador no `Game.js`.
+The game is not just an infinite continuous loop. The `Environment` class injects cinematic moments and unique elements into the scenery according to the distance (meters) covered by the player in `Game.js`.
 
-### Pedaços Únicos e o Loop
-Quando o jogo de fato começa (O estado bate em `PLAYING`), há um limite de tempo no aguardo e então spawna-se o terreno introdutório (A imagem da entrada da base, que não tem textura infinita em si mesma!).
+### Unique Pieces and the Loop
+When the game actually starts (The state hits `PLAYING`), there is a specific waiting time limit and then the introductory terrain spawns in (The image of the base entrance, which does not have an infinite texture overlapping itself!).
 
-Assim que esta imagem passa, entra o que é conhecido como a **LoopLayer**. Que é basicamente uma imagem do chão projetada de forma a dar "tile", de forma a emendar o fim do seu sprite no início do mesmo sem causar estranhamento, tornando o jogo infinitamente progressivo lateralmente do ponto de vista do jogador.
+As soon as this initial image passes, what is known as the **LoopLayer** enters. Which is basically a ground image projected in a "tileable" way, so to stitch the end of its sprite to the beginning of it without causing strangeness, making the game infinitely progressive laterally from the player's perspective.
 
-## Eventos Únicos
+## Unique Events
 
-À medida que o game avança na classe `Game.js`, gatilhos baseados em `this.distance >= X_METROS` acionam chamadas de criação (spawn) injetadas no meio do loop contínuo do fundo.
+As the game advances in the `Game.js` distance score, triggers based on `this.distance >= X_METERS` fire spawn calls injected into the middle of the continuous background loop.
 
-- `spawnEasterEgg()`: Sobressalta do chão regular da caverna de forma imponente após certa pontuação e sobrepõe seus pixels.
-- `spawnShop()`: É acionada logo após o EasterEgg baseada em gatilho no motor de colisão e desenhada com um deslocamento `(offsetY)` em relação ao `ParallaxLayer` loopado.
+- `spawnEasterEgg()`: Jumps out of the regular cave ground imposingly after certain distances and overlaps its pixels over the regular floor.
+- `spawnShop()`: Is triggered shortly after the EasterEgg based on a collision engine trigger and drawn with an offset `(offsetY)` in relation to the looped `ParallaxLayer`.
 
-## Sistema de Colisão do Cenário (Pixel-Perfect)
+## Scenery Collision System (Pixel-Perfect)
 
-O jogador consegue literalmente "bater o helicóptero e morrer" contra o chão se voar muito baixo, ou trombar de frente com a estátua (Easter Egg).
+The player can literally "crash the helicopter and die" against the ground if they fly too low, or bump head-on into the statue (Easter Egg).
 
-O clássico de BoundingBox retangular funciona muito mal para isso (iria fechar as "curvas" do relevo e causar colisões injustas no jogador). Assim sendo:
-- O `Environment` cria na sua inicialização um Canvas Invisível e processa individualmente todas as imagens passíveis de contato.
-- Um "mapa", um Array Unidimensional Binário (`1` para parede e `0` para vazio) é criado checando a opacidade (Canal Alpha / Transparência).
-- Quando as caixas do jogador se aproximam dessas hitboxes globais (Broad phase estática vs Bounding Box do player), a Narrow phase baseada no `getImageData()` entra checando se o offset de X,Y do ponto do jogador cruza contra algum pixel sólido. Se cair em um 1 lógico = Colisão Imediata (Game Over).
+The classic rectangular BoundingBox works very poorly for this (it would close the "curves" of the relief and cause unfair collisions to the player). Therefore:
+- The `Environment` creates an Invisible Canvas on its initialization and individually processes all images susceptible to contact.
+- A "map", a Unidimensional Binary Array (`1` for wall and `0` for empty) is created by checking the opacity (Alpha Channel / Transparency).
+- When the player bounding boxes approach these global hitboxes (Static broad phase vs Player Bounding Box), the Narrow phase based on `getImageData()` checks if the X,Y offset of the player point crosses against any solid pixel. If it falls into a logical 1 = Immediate Collision (Game Over).
