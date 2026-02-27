@@ -1,0 +1,208 @@
+diff --git a/src/core/Assets.js b/src/core/Assets.js
+index d655003..e6d1039 100644
+--- a/src/core/Assets.js
++++ b/src/core/Assets.js
+@@ -4,6 +4,8 @@ export const Assets = {
+     missile: new Image(),
+     cave_bg: new Image(),
+     cave_bg_play: new Image(),
++    cave_bg_rusty_part1: new Image(),
++    cave_bg_rusty_part2: new Image(),
+     mist: new Image(),
+     alien_spit: new Image(),
+     ground: new Image(),
+@@ -25,9 +27,9 @@ export const Assets = {
+ export function loadAssets(onProgress) {
+     return new Promise((resolve) => {
+         let loaded = 0;
+-        // Base images (11) + Turn (5) + Audio (3) + Enemy (45) + Explosion (28) + Coin (23) + Enemy02 (48) + SpeedUp (47) + groundShop (1)
+-        // 11 + 5 + 3 + 45 + 28 + 23 + 48 + 47 + 1 = 211
+-        const total = 211;
++        // Base images (13) + Turn (5) + Audio (3) + Enemy (45) + Explosion (28) + Coin (23) + Enemy02 (48) + SpeedUp (47) + groundShop (1)
++        // 13 + 5 + 3 + 45 + 28 + 23 + 48 + 47 + 1 = 213
++        const total = 213;
+ 
+         const onLoad = () => {
+             loaded++;
+@@ -53,6 +55,13 @@ export function loadAssets(onProgress) {
+         Assets.cave_bg_play.src = 'assets/images/cave_bg_huge.png'; // New for Play
+         Assets.cave_bg_play.onload = onLoad;
+ 
++        Assets.cave_bg_rusty_part1.src = 'assets/images/cave_bg_rusty_part1_v2.png';
++        Assets.cave_bg_rusty_part1.onload = onLoad;
++        Assets.cave_bg_rusty_part2.src = 'assets/images/cave_bg_rusty_part2_v2.png';
++        Assets.cave_bg_rusty_part2.onload = onLoad;
++        Assets.cave_bg_rusty_part3.src = 'assets/images/cave_bg_rusty_part3_v2.png';
++        Assets.cave_bg_rusty_part3.onload = onLoad;
++
+         Assets.ground.src = 'assets/images/ground_v4.png';
+         Assets.ground.onload = onLoad;
+ 
+diff --git a/src/core/Game.js b/src/core/Game.js
+index e3576d4..be7eb98 100644
+--- a/src/core/Game.js
++++ b/src/core/Game.js
+@@ -33,6 +33,7 @@ export class Game {
+         this.wave02Spawned = false;
+         this.wave03Spawned = false;
+         this.easterEggSpawned = false;
++        this.rustyBgTriggered = false;
+ 
+         // Barrage State
+         this.barrageActive = false;
+@@ -446,8 +447,17 @@ export class Game {
+             this.wave03Spawned = true;
+         }
+ 
++        // --- Rusty Background Transition Logic ---
++        // Dynamically append the rusty tile precisely after the current on-screen tile completes.
++        if (this.distance >= 2800 && !this.rustyBgTriggered) {
++            // Queue the 2-part rusty tile block once.
++            this.environment.queueBgTile(Assets);
++
++            this.rustyBgTriggered = true;
++        }
++
+         // Easter Egg (After Wave 2/3)
+-        // Was 1600 frames. Now 2600m (2.6km)
++        // Was 1600 frames. Now 2600m (2.6km) -> 3700m
+         if (this.distance >= 3700 && !this.easterEggSpawned) {
+             this.environment.spawnEasterEgg(Assets);
+             this.environment.spawnShop();
+@@ -492,7 +502,7 @@ export class Game {
+         }
+ 
+         // Check if Easter Egg exited the screen
+-        if (this.distance >= 8000 && !this.showDevMessage) {
++        if (this.distance >= 20000 && !this.showDevMessage) {
+             this.showDevMessage = true;
+         }
+ 
+diff --git a/src/environment/Environment.js b/src/environment/Environment.js
+index cd4b640..7e320e7 100644
+--- a/src/environment/Environment.js
++++ b/src/environment/Environment.js
+@@ -3,14 +3,42 @@ import { Assets } from '../core/Assets.js';
+ 
+ export class ParallaxLayer {
+     constructor(image, speed, y = 0, scale = 1.0) {
+-        this.image = image;
+         this.speed = speed;
+         this.x = 0;
+         this.y = y;
+         this.scale = scale;
+         // Calculate the effective width/height of one tile
++        // Assuming the base background image dictates the width scale
+         this.width = image.width * scale;
+         this.height = image.height * scale;
++
++        // Sequence format: { image, startIndex, endIndex }
++        this.sequence = [
++            { image: image, startIndex: 0, endIndex: Infinity }
++        ];
++    }
++
++    appendSequence(newImage, repeatCount = 1) {
++        // Absolute index of the tile currently touching the rightmost edge of the screen
++        let lastVisibleIndex = Math.floor((CANVAS_WIDTH - this.x) / this.width);
++
++        let lastItem = this.sequence[this.sequence.length - 1];
++        let startNewIndex = lastVisibleIndex + 1;
++
++        if (lastItem.endIndex === Infinity) {
++            // Cut off the infinite background precisely after what's currently visible
++            lastItem.endIndex = Math.max(lastVisibleIndex, lastItem.startIndex);
++            startNewIndex = lastItem.endIndex + 1;
++        } else {
++            // If the last item was finite, just append tightly after it finishes
++            startNewIndex = lastItem.endIndex + 1;
++        }
++
++        this.sequence.push({
++            image: newImage,
++            startIndex: startNewIndex,
++            endIndex: repeatCount === Infinity ? Infinity : startNewIndex + repeatCount - 1
++        });
+     }
+ 
+     update(baseSpeed, dt) {
+@@ -21,31 +49,43 @@ export class ParallaxLayer {
+         // This keeps existing speed values roughly valid relative to 60fps
+         const frameScale = dt * 60;
+         this.x -= this.speed * baseSpeed * frameScale;
+-
+-        // Reset when the first tile has completely scrolled off-screen
+-        if (this.x <= -this.width) {
+-            this.x += this.width;
+-        }
+     }
+ 
+     draw(ctx) {
+-        // Draw tiles from current x position until we cover the screen width
+-        let currentDrawX = this.x;
+-
+         // Safety break to prevent infinite loops if width is 0 (shouldn't happen)
+         if (this.width <= 0) return;
+ 
++        let firstVisibleTileIndex = Math.floor(-this.x / this.width);
++        let currentDrawX = this.x + (firstVisibleTileIndex * this.width);
++        let currentTileIndex = firstVisibleTileIndex;
++
+         while (currentDrawX < CANVAS_WIDTH) {
+-            // Only draw if the tile is at least partially visible on the right side
+-            // (Standard behavior: draw if x < canvas_width)
++            // Find which sequence item should be drawn for currentTileIndex
++            // Fallback to the very first sequence image if none match (should mathematically always match)
++            let imgToDraw = this.sequence[0].image;
++
++            for (let seq of this.sequence) {
++                if (currentTileIndex >= seq.startIndex && currentTileIndex <= seq.endIndex) {
++                    imgToDraw = seq.image;
++                    break;
++                }
++            }
+ 
++            // Cleanup memory for old sequences that scroll entirely off-screen
++            // Keep at least one sequence to not break the array
++            while (this.sequence.length > 1 && this.sequence[0].endIndex < firstVisibleTileIndex) {
++                this.sequence.shift();
++            }
++
++            // Always draw if the tile is at least partially visible on the screen
+             ctx.drawImage(
+-                this.image,
+-                0, 0, this.image.width, this.image.height, // Source
++                imgToDraw,
++                0, 0, imgToDraw.width, imgToDraw.height, // Source
+                 Math.floor(currentDrawX), this.y,        // Destination
+                 this.width, this.height                  // Destination Size
+             );
+             currentDrawX += this.width;
++            currentTileIndex++;
+         }
+     }
+ }
+@@ -241,9 +281,23 @@ export class Environment {
+             this.currentBg = this.bgPlay;
+         } else {
+             this.currentBg = this.bgStart;
++            this.bgPlay.sequence = [
++                { image: this.bgPlay.sequence[0].image, startIndex: 0, endIndex: Infinity }
++            ];
+         }
+     }
+ 
++    queueBgTile(assets) {
++        // Enqueue the first part of the rusty sequence (duration: 1 tile)
++        this.bgPlay.appendSequence(assets.cave_bg_rusty_part1, 1);
++        // Enqueue the second part (duration: 1 tile)
++        this.bgPlay.appendSequence(assets.cave_bg_rusty_part2, 1);
++        // Enqueue the third part (duration: 1 tile)
++        this.bgPlay.appendSequence(assets.cave_bg_rusty_part3, 1);
++        // Command to go back to the standard dark cave and repeat to Infinity afterwards
++        this.bgPlay.appendSequence(assets.cave_bg_play, Infinity);
++    }
++
+     update(dt, shouldAdvanceGround = true) {
+         // If dt is undefined (first frame or safety), default to ~1/60
+         if (!dt) dt = 0.016;

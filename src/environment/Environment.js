@@ -1,15 +1,44 @@
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from '../utils/Constants.js';
+import { Assets } from '../core/Assets.js';
 
 export class ParallaxLayer {
     constructor(image, speed, y = 0, scale = 1.0) {
-        this.image = image;
         this.speed = speed;
         this.x = 0;
         this.y = y;
         this.scale = scale;
         // Calculate the effective width/height of one tile
+        // Assuming the base background image dictates the width scale
         this.width = image.width * scale;
         this.height = image.height * scale;
+
+        // Sequence format: { image, startIndex, endIndex }
+        this.sequence = [
+            { image: image, startIndex: 0, endIndex: Infinity }
+        ];
+    }
+
+    appendSequence(newImage, repeatCount = 1) {
+        // Absolute index of the tile currently touching the rightmost edge of the screen
+        let lastVisibleIndex = Math.floor((CANVAS_WIDTH - this.x) / this.width);
+
+        let lastItem = this.sequence[this.sequence.length - 1];
+        let startNewIndex = lastVisibleIndex + 1;
+
+        if (lastItem.endIndex === Infinity) {
+            // Cut off the infinite background precisely after what's currently visible
+            lastItem.endIndex = Math.max(lastVisibleIndex, lastItem.startIndex);
+            startNewIndex = lastItem.endIndex + 1;
+        } else {
+            // If the last item was finite, just append tightly after it finishes
+            startNewIndex = lastItem.endIndex + 1;
+        }
+
+        this.sequence.push({
+            image: newImage,
+            startIndex: startNewIndex,
+            endIndex: repeatCount === Infinity ? Infinity : startNewIndex + repeatCount - 1
+        });
     }
 
     update(baseSpeed, dt) {
@@ -20,31 +49,43 @@ export class ParallaxLayer {
         // This keeps existing speed values roughly valid relative to 60fps
         const frameScale = dt * 60;
         this.x -= this.speed * baseSpeed * frameScale;
-
-        // Reset when the first tile has completely scrolled off-screen
-        if (this.x <= -this.width) {
-            this.x += this.width;
-        }
     }
 
     draw(ctx) {
-        // Draw tiles from current x position until we cover the screen width
-        let currentDrawX = this.x;
-
         // Safety break to prevent infinite loops if width is 0 (shouldn't happen)
         if (this.width <= 0) return;
 
-        while (currentDrawX < CANVAS_WIDTH) {
-            // Only draw if the tile is at least partially visible on the right side
-            // (Standard behavior: draw if x < canvas_width)
+        let firstVisibleTileIndex = Math.floor(-this.x / this.width);
+        let currentDrawX = this.x + (firstVisibleTileIndex * this.width);
+        let currentTileIndex = firstVisibleTileIndex;
 
+        while (currentDrawX < CANVAS_WIDTH) {
+            // Find which sequence item should be drawn for currentTileIndex
+            // Fallback to the very first sequence image if none match (should mathematically always match)
+            let imgToDraw = this.sequence[0].image;
+
+            for (let seq of this.sequence) {
+                if (currentTileIndex >= seq.startIndex && currentTileIndex <= seq.endIndex) {
+                    imgToDraw = seq.image;
+                    break;
+                }
+            }
+
+            // Cleanup memory for old sequences that scroll entirely off-screen
+            // Keep at least one sequence to not break the array
+            while (this.sequence.length > 1 && this.sequence[0].endIndex < firstVisibleTileIndex) {
+                this.sequence.shift();
+            }
+
+            // Always draw if the tile is at least partially visible on the screen
             ctx.drawImage(
-                this.image,
-                0, 0, this.image.width, this.image.height, // Source
+                imgToDraw,
+                0, 0, imgToDraw.width, imgToDraw.height, // Source
                 Math.floor(currentDrawX), this.y,        // Destination
                 this.width, this.height                  // Destination Size
             );
             currentDrawX += this.width;
+            currentTileIndex++;
         }
     }
 }
@@ -228,6 +269,7 @@ export class Environment {
         this.groundIntro.x = CANVAS_WIDTH;
         this.groundLoop.x = CANVAS_WIDTH + (this.groundIntro.width);
         this.easterEgg = null;
+        this.shopActive = false;
 
         // Ensure we are back to Start BG if reset? 
         // Usually reset means Restart Game.
@@ -239,7 +281,28 @@ export class Environment {
             this.currentBg = this.bgPlay;
         } else {
             this.currentBg = this.bgStart;
+            this.bgPlay.sequence = [
+                { image: this.bgPlay.sequence[0].image, startIndex: 0, endIndex: Infinity }
+            ];
         }
+    }
+
+    queueBgTile(assets) {
+        // Enqueue the first part of the rusty sequence (duration: 1 tile)
+        this.bgPlay.appendSequence(assets.cave_bg_rusty_part1, 1);
+        // Enqueue the second part (duration: 1 tile)
+        this.bgPlay.appendSequence(assets.cave_bg_rusty_part2, 1);
+        // Enqueue the third part (duration: 1 tile)
+        this.bgPlay.appendSequence(assets.cave_bg_rusty_part3, 1);
+        // Command to go back to the standard dark cave and repeat to Infinity afterwards
+        this.bgPlay.appendSequence(assets.cave_bg_play, Infinity);
+    }
+
+    queueRustyBgFull(assets) {
+        // Enqueue the full rusty background (duration: 1 tile)
+        this.bgPlay.appendSequence(assets.cave_bg_rusty_full, 1);
+        // Command to go back to the standard dark cave and repeat to Infinity afterwards
+        //this.bgPlay.appendSequence(assets.cave_bg_play, Infinity);
     }
 
     update(dt, shouldAdvanceGround = true) {
@@ -313,11 +376,17 @@ export class Environment {
                     this.easterEgg = null; // Remove when off screen
                 }
             }
+
+            // Move Shop
+            if (this.shopActive) {
+                this.shopX -= moveAmt;
+            }
         }
     }
 
-    draw(ctx) {
+    draw(ctx, shopVisited = false) {
         this.currentBg.draw(ctx);
+        this.shopVisited = shopVisited; // Armazena estado para desenhar a loja
 
         // Darken overlay for Play Background (Atmosphere)
         if (this.currentBg === this.bgPlay) {
@@ -347,31 +416,22 @@ export class Environment {
             }
 
             // Draw Loop Tiles
-            // We start drawing from groundLoop.x
-            // But wait, groundLoop.x tracks the "first" tile of the infinite loop.
-            // If Intro is still visible (x > -width), then groundLoop.x should be exactly Intro.x + Intro.width.
-            // Does our logic guarantee that?
-            // Yes, both move at same speed. Initial positions were aligned.
-            // Only catch: The "Loop Logic" (if x < -width, x += width) might desync if we process it too early.
-            // Actually, if Intro is at -100, and Loop is attached at +Width-100...
-            // When Loop resets, it jumps back.
-            // We just need to make sure we draw enough tiles to cover the screen.
-
-            let currentX = this.groundLoop.x;
-
-            // Optimization: If Intro is taking up screen space, we might not need to draw many loop tiles yet.
-            // But standard loop is fine.
-
-            while (currentX < CANVAS_WIDTH) {
-                if (currentX > -this.groundLoop.width) {
-                    ctx.drawImage(
-                        this.groundLoop.img,
-                        0, 0, this.groundLoop.img.width, this.groundLoop.img.height,
-                        Math.floor(currentX), this.groundY,
-                        this.groundLoop.width, this.groundLoop.img.height * this.groundScale
-                    );
+            // Draw Ground Loop
+            // Find how many images needed
+            if (this.groundLoop && this.groundLoop.img.complete) {
+                let numImg = Math.ceil(CANVAS_WIDTH / this.groundLoop.width) + 1;
+                let currentX = this.groundLoop.x;
+                for (let i = 0; i < numImg; i++) {
+                    if (currentX + this.groundLoop.width > 0) {
+                        ctx.drawImage(
+                            this.groundLoop.img,
+                            0, 0, this.groundLoop.img.width, this.groundLoop.img.height,
+                            Math.floor(currentX), this.groundY,
+                            this.groundLoop.width, this.groundLoop.img.height * this.groundScale
+                        );
+                    }
+                    currentX += this.groundLoop.width;
                 }
-                currentX += this.groundLoop.width;
             }
         }
 
@@ -382,6 +442,23 @@ export class Environment {
                 CANVAS_HEIGHT - this.easterEgg.height - 10, // Move up more
                 this.easterEgg.width,  // Add scaled width
                 this.easterEgg.height  // Add scaled height
+            );
+        }
+
+        if (this.shopActive && Assets.groundShop.complete) {
+            // A loja será renderizada fechada VIZUALMENTE se o Game disser que ela já foi visitada mas não está aberta UI
+            const shopImg = this.shopVisited && Assets.groundShopClosed.complete ? Assets.groundShopClosed : Assets.groundShop;
+
+            // Because shop image is 512x752 (taller than normal ground 512x512)
+            // we shift its drawing coordinate UP by the difference
+            const extraHeight = (shopImg.height - this.groundLoop.img.height) * this.groundScale;
+            const shopY = this.groundY - extraHeight;
+
+            ctx.drawImage(
+                shopImg,
+                0, 0, shopImg.width, shopImg.height,
+                Math.floor(this.shopX), shopY,
+                shopImg.width * this.groundScale, shopImg.height * this.groundScale
             );
         }
     }
@@ -406,5 +483,25 @@ export class Environment {
             scale: scale, // Store scale relative to original image
             map: this.createCollisionMap(img) // Create Collision Map!
         };
+    }
+
+    spawnShop() {
+        if (!this.shopActive) {
+            this.shopActive = true;
+
+            // Find a ground tile boundary that is safely off-screen to the right,
+            // Far enough to be exactly AFTER the Easter Egg.
+            // 400 pixels of gap after the statue.
+            let targetX = CANVAS_WIDTH;
+            if (this.easterEgg) {
+                targetX = this.easterEgg.x + this.easterEgg.width + 400; // Ajuste o 400 para aumentar/diminuir o buraco
+            }
+
+            let tileX = this.groundLoop.x;
+            while (tileX < targetX) {
+                tileX += this.groundLoop.width;
+            }
+            this.shopX = tileX; // Matches the scrolling grid perfectly!
+        }
     }
 }

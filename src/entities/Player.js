@@ -32,6 +32,15 @@ export class Player {
         this.shootTimer = 0;
         this.canShoot = true;
         this.direction = 'right';
+        this.bulletSpeedMultiplier = 1; // Default speed
+
+        // Upgrades
+        this.weaponType = 'single'; // 'single' ou 'spread'
+        this.fireRateLevel = 0; // 0, 1, 2, 3
+        this.baseShootCooldown = 25; // frames (Aumentou de 15 para 25 para reduzir cadência base)
+        this.hasShield = false;
+        this.shieldVisualTimer = 0;
+        this.hasCoinMagnet = false;
     }
 
     startTurn(target) {
@@ -112,7 +121,9 @@ export class Player {
         if (Keys.Space) {
             if (this.canShoot && this.shootTimer <= 0) {
                 this.shoot();
-                this.shootTimer = 15; // Shorter cooldown since manual press is required
+                // Calcula cooldown baseado no nível: ex: 25, 18, 11, 5
+                const cooldown = Math.max(5, this.baseShootCooldown - (this.fireRateLevel * 7));
+                this.shootTimer = cooldown;
                 this.canShoot = false;
             }
         } else {
@@ -191,10 +202,32 @@ export class Player {
                 this.spriteWidth * scale, this.spriteHeight * scale
             );
         }
+
+        // Draw Shield
+        if (this.hasShield) {
+            this.shieldVisualTimer += 0.05;
+            ctx.save();
+            ctx.strokeStyle = `rgba(0, 255, 255, ${0.5 + Math.sin(this.shieldVisualTimer) * 0.2})`;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.ellipse(
+                this.x + this.width / 2,
+                this.y + this.height / 2,
+                this.width * 0.75,
+                this.height * 1.2,
+                0, 0, Math.PI * 2
+            );
+            ctx.stroke();
+
+            // Inner glow
+            ctx.fillStyle = `rgba(0, 255, 255, 0.1)`;
+            ctx.fill();
+            ctx.restore();
+        }
     }
 
     shoot() {
-        if (this.bullets.length < 4) {
+        if (this.bullets.length < 10) { // Aumentei o limite por causa de tiro duplo e cadência
             // If turning, fire in the target direction immediately
             const fireDirection = this.isTurning ? this.turnTarget : this.direction;
 
@@ -202,7 +235,34 @@ export class Player {
                 ? this.x + this.width - 5
                 : this.x - 20;
 
-            this.bullets.push(new Projectile(spawnX, this.y + this.height / 2, fireDirection));
+            if (this.weaponType === 'spread') {
+                // Three bullets: Straight, Angled Up, Angled Down
+                // Calculate normalized vectors so absolute speed is identical to single shot
+                const baseSpeed = 6 * this.bulletSpeedMultiplier;
+                const angle = 0.466; // approx Math.tan(25 degrees)
+
+                // Calculate magnitude to normalize
+                const mag = Math.sqrt(1 + angle * angle); // sqrt(1 + 0.217) = 1.103
+
+                const vxNorm = baseSpeed / mag;
+                const vyNorm = (baseSpeed * angle) / mag;
+
+                const vxFront = fireDirection === 'right' ? vxNorm : -vxNorm;
+
+                // Top (Angles Up)
+                const b1 = new Projectile(spawnX, this.y + this.height / 2 - 20, { vx: vxFront, vy: -vyNorm }, 'missile', 1);
+                // Mid (Straight)
+                const b2 = new Projectile(spawnX, this.y + this.height / 2, fireDirection, 'missile', this.bulletSpeedMultiplier);
+                // Bottom (Angles Down)
+                const b3 = new Projectile(spawnX, this.y + this.height / 2 + 20, { vx: vxFront, vy: vyNorm }, 'missile', 1);
+
+                this.bullets.push(b1, b2, b3);
+            } else if (this.weaponType === 'pierce') {
+                this.bullets.push(new Projectile(spawnX, this.y + this.height / 2, fireDirection, 'pierce', this.bulletSpeedMultiplier));
+            } else {
+                this.bullets.push(new Projectile(spawnX, this.y + this.height / 2, fireDirection, 'missile', this.bulletSpeedMultiplier));
+            }
+
             if (this.audio) this.audio.playSFX('assets/audio/shoot.ogg');
         }
     }

@@ -1,17 +1,27 @@
+import { getCurrentLanguage } from '../utils/Language.js';
+
 export const Assets = {
     helicopter: new Image(),
     helicopterLeft: new Image(),
     missile: new Image(),
     cave_bg: new Image(),
     cave_bg_play: new Image(),
+    cave_bg_rusty_part1: new Image(),
+    cave_bg_rusty_part2: new Image(),
+    cave_bg_rusty_part3: new Image(),
+    cave_bg_rusty_full: new Image(),
     mist: new Image(),
     alien_spit: new Image(),
     ground: new Image(),
     groundIntro: new Image(),
     logo: new Image(),
+    groundShop: new Image(),
+    groundShopClosed: new Image(),
     turn: [], // Array for turn frames
     coin: [], // Array for Coin frames
+    speedUp: [], // Speed-up powerup frames
     enemy01: [], // Array for Enemy 01 frames
+    enemy02: [], // Array for Enemy 02 frames
     explosionEnemy01: [], // Explosion frames
     audio: {
         shoot: new Audio(),
@@ -22,9 +32,9 @@ export const Assets = {
 export function loadAssets(onProgress) {
     return new Promise((resolve) => {
         let loaded = 0;
-        // Base images (11) + Turn (5) + Audio (2) + Enemy (45) + Explosion (28) + Coin (23)
-        // 11 + 5 + 2 + 45 + 28 + 23 = 114
-        const total = 114;
+        // Base images (17) + Turn (5) + Audio (4) + Enemy (45) + Explosion (28) + Coin (23) + Enemy02 (48) + SpeedUp (47)
+        // 17 + 5 + 4 + 45 + 28 + 23 + 48 + 47 = 217
+        const total = 217;
 
         const onLoad = () => {
             loaded++;
@@ -50,8 +60,26 @@ export function loadAssets(onProgress) {
         Assets.cave_bg_play.src = 'assets/images/cave_bg_huge.png'; // New for Play
         Assets.cave_bg_play.onload = onLoad;
 
+        Assets.cave_bg_rusty_part1.src = 'assets/images/cave_bg_rusty_part1_v2.png';
+        Assets.cave_bg_rusty_part1.onload = onLoad;
+        Assets.cave_bg_rusty_part2.src = 'assets/images/cave_bg_rusty_part2_v2.png';
+        Assets.cave_bg_rusty_part2.onload = onLoad;
+        Assets.cave_bg_rusty_part3.src = 'assets/images/cave_bg_rusty_part3_v2.png';
+        Assets.cave_bg_rusty_part3.onload = onLoad;
+
+        Assets.cave_bg_rusty_full.src = 'assets/images/cave_bg_rusty.png';
+        Assets.cave_bg_rusty_full.onload = onLoad;
+
         Assets.ground.src = 'assets/images/ground_v4.png';
         Assets.ground.onload = onLoad;
+
+        const langStr = getCurrentLanguage() === 'pt' ? 'portuguese' : 'english';
+
+        Assets.groundShop.src = `assets/images/ground_v4_shop_open(${langStr}).png`;
+        Assets.groundShop.onload = onLoad;
+
+        Assets.groundShopClosed.src = `assets/images/ground_v4_shop_close(${langStr}).png`;
+        Assets.groundShopClosed.onload = onLoad;
 
         Assets.mist.src = 'assets/images/mist_texture.png';
         Assets.mist.onload = onLoad;
@@ -85,6 +113,14 @@ export function loadAssets(onProgress) {
         Assets.audio.explosion.src = 'assets/audio/explosion-enemy01.ogg';
         Assets.audio.explosion.oncanplaythrough = onLoad;
 
+        Assets.audio.speedUpVoice = new Audio();
+        Assets.audio.speedUpVoice.src = 'assets/audio/speed-up-voice.mp3';
+        Assets.audio.speedUpVoice.oncanplaythrough = onLoad;
+
+        Assets.audio.speedUpSound = new Audio();
+        Assets.audio.speedUpSound.src = 'assets/audio/speed-up-sound.mp3';
+        Assets.audio.speedUpSound.oncanplaythrough = onLoad;
+
         // Fallback in case audio fails or formats weirdly
         Assets.audio.shoot.onerror = () => {
             console.warn("Failed to load shoot.ogg");
@@ -103,6 +139,20 @@ export function loadAssets(onProgress) {
                 onLoad(); // Proceed anyway
             };
             Assets.enemy01.push(img);
+        }
+
+        // Load Enemy 02 Frames (000000.png to 000047.png)
+        for (let i = 0; i <= 47; i++) {
+            const img = new Image();
+            // Pad start with zeros to 6 digits
+            const num = i.toString().padStart(6, '0');
+            img.src = `assets/images/enemy02/${num}.png`;
+            img.onload = onLoad;
+            img.onerror = () => {
+                console.warn(`Failed to load enemy02 frame ${num}`);
+                onLoad(); // Proceed anyway
+            };
+            Assets.enemy02.push(img);
         }
 
         // Load Explosion Frames (0001.png to 0028.png)
@@ -130,6 +180,19 @@ export function loadAssets(onProgress) {
                 onLoad();
             };
             Assets.coin.push(img);
+        }
+
+        // Load Speed-Up Frames (000000.png to 000046.png)
+        for (let i = 0; i <= 46; i++) {
+            const img = new Image();
+            const num = i.toString().padStart(6, '0');
+            img.src = `assets/images/speed-up/speed-up_${num}.png`;
+            img.onload = onLoad;
+            img.onerror = () => {
+                console.warn(`Failed to load speed-up frame ${num}`);
+                onLoad();
+            };
+            Assets.speedUp.push(img);
         }
     });
 }

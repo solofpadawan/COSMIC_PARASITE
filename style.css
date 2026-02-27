@@ -247,6 +247,116 @@ body {
     font-size: 14px;
 }
 
+/* --- Shop Screen --- */
+#shop-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.9);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 150;
+    font-family: 'Press Start 2P', monospace;
+}
+
+#shop-screen h1 {
+    font-size: 40px;
+    color: #ff00ff;
+    text-shadow: 4px 4px 0 #000;
+    margin-bottom: 20px;
+}
+
+#shop-balance {
+    font-size: 24px;
+    color: #ffff00;
+    margin-bottom: 40px;
+}
+
+.shop-items {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    width: 80%;
+    max-width: 500px;
+}
+
+.shop-btn {
+    position: relative;
+    background: #000;
+    border: 3px solid #00ff00;
+    color: #fff;
+    padding: 15px 20px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 14px;
+    display: flex;
+    justify-content: space-between;
+    transition: all 0.2s;
+    pointer-events: none;
+    /* Mouse desativado conforme pedido */
+}
+
+.shop-btn:hover:not(:disabled),
+.shop-btn.focused:not(:disabled) {
+    /* Mantém estilo padrão, seleção será por míssil apenas */
+}
+
+.shop-btn:disabled {
+    border-color: #555;
+    color: #555;
+    cursor: not-allowed;
+}
+
+.close-btn {
+    position: relative;
+    margin-top: 40px;
+    background: transparent;
+    border: 2px solid #ff00ff;
+    color: #ff00ff;
+    padding: 15px 30px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 16px;
+    pointer-events: none;
+    /* Mouse desativado */
+}
+
+.close-btn:hover,
+.close-btn.focused {
+    /* Sem fundo sólido, usa míssil */
+}
+
+/* --- Hand Seletor --- */
+.shop-btn.focused::before,
+.close-btn.focused::before {
+    content: '';
+    position: absolute;
+    left: -110px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 100px;
+    height: 100px;
+    background-image: url('assets/images/alien_hand.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: right center;
+    image-rendering: crisp-edges;
+    image-rendering: pixelated;
+    animation: hoverHand 1s infinite alternate ease-in-out;
+}
+
+@keyframes hoverHand {
+    0% {
+        left: -110px;
+    }
+
+    100% {
+        left: -100px;
+    }
+}
+
 .hidden {
     display: none !important;
 }

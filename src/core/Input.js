@@ -5,6 +5,8 @@ let gamepadIndex = null;
 export class InputHandler {
     constructor() {
         this.keyboardState = {};
+        this.prevKeyboardState = {};
+        this.prevGamepadState = {};
         this.keyBuffer = "";
         this.cheatGodEntered = false;
         this.initKeyboard();
@@ -21,6 +23,7 @@ export class InputHandler {
 
             const key = e.key === ' ' ? 'Space' : e.key;
             this.keyboardState[key] = true;
+            if (e.key === 'Enter') this.keyboardState.Enter = true;
 
             // Cheat Code Logic
             // Only letter keys
@@ -40,6 +43,7 @@ export class InputHandler {
         window.addEventListener('keyup', e => {
             const key = e.key === ' ' ? 'Space' : e.key;
             this.keyboardState[key] = false;
+            if (e.key === 'Enter') this.keyboardState.Enter = false;
         });
     }
 
@@ -76,10 +80,31 @@ export class InputHandler {
                 gpSpace = gamepad.buttons[0].pressed || gamepad.buttons[2].pressed; // Button 0 (A) or 2 (X)
                 gpPause = gamepad.buttons[9].pressed; // Button 9 (Start usually)
 
+                // Single press logic for UI
+                const prevUp = this.prevGamepadState.Up || false;
+                const prevDown = this.prevGamepadState.Down || false;
+                const prevAccept = this.prevGamepadState.Accept || false;
+
+                let gpSingleUp = false, gpSingleDown = false, gpSingleAccept = false;
+                if (gpUp && !prevUp) gpSingleUp = true;
+                if (gpDown && !prevDown) gpSingleDown = true;
+                if (gpSpace && !prevAccept) gpSingleAccept = true;
+
+                this.prevGamepadState = { Up: gpUp, Down: gpDown, Accept: gpSpace };
+
                 // Check for ANY button press or axis movement for audio unlock
                 this.gamepadActive = gamepad.buttons.some(b => b.pressed) ||
                     gamepad.axes.some(axis => Math.abs(axis) > threshold);
+
+                // Temp UI vars
+                this.gpSingleUp = gpSingleUp;
+                this.gpSingleDown = gpSingleDown;
+                this.gpSingleAccept = gpSingleAccept;
             }
+        } else {
+            this.gpSingleUp = false;
+            this.gpSingleDown = false;
+            this.gpSingleAccept = false;
         }
 
         // Merge States into Global Keys
@@ -90,6 +115,21 @@ export class InputHandler {
         Keys.Space = this.keyboardState.Space || gpSpace;
         Keys.Pause = this.keyboardState.p || this.keyboardState.P || gpPause;
         Keys.FastForward = this.keyboardState.f || this.keyboardState.F;
+
+        // Check single-press for Keyboard UI
+        const currKbUp = this.keyboardState.ArrowUp || this.keyboardState.w;
+        const currKbDown = this.keyboardState.ArrowDown || this.keyboardState.s;
+        const currKbAccept = this.keyboardState.Space || this.keyboardState.Enter;
+
+        const prevKbUp = this.prevKeyboardState.ArrowUp || this.prevKeyboardState.w;
+        const prevKbDown = this.prevKeyboardState.ArrowDown || this.prevKeyboardState.s;
+        const prevKbAccept = this.prevKeyboardState.Space || this.prevKeyboardState.Enter;
+
+        Keys.UI_Up = this.gpSingleUp || (currKbUp && !prevKbUp);
+        Keys.UI_Down = this.gpSingleDown || (currKbDown && !prevKbDown);
+        Keys.UI_Accept = this.gpSingleAccept || (currKbAccept && !prevKbAccept);
+
+        this.prevKeyboardState = { ...this.keyboardState };
 
         this.anyKeyPressed = Object.values(this.keyboardState).some(k => k) || this.gamepadActive;
     }

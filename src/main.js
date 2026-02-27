@@ -3,6 +3,7 @@ import { Game } from './core/Game.js';
 import { Starfield } from './environment/Starfield.js';
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from './utils/Constants.js';
 import { ScoreManager } from './core/ScoreManager.js';
+import { detectLanguage, t } from './utils/Language.js';
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -10,6 +11,30 @@ const ctx = canvas.getContext('2d');
 const scoreManager = new ScoreManager();
 
 async function init() {
+    detectLanguage();
+
+    // Translate DOM Elements
+    document.querySelector('#intro-screen h1').innerText = 'COSMIC PARASITE';
+    document.getElementById('loading-text').innerText = `${t('loading')} 0%`;
+    document.getElementById('start-text').innerText = t('click_to_start');
+    document.querySelector('.high-scores h2').innerText = t('top_pilots');
+
+    document.querySelector('#shop-screen h1').innerText = t('weapon_shop');
+    document.getElementById('shop-balance').innerText = `${t('money')}0,00`;
+
+    document.querySelector('#btn-buy-spread .item-name').innerText = t('triple_shot');
+    document.querySelector('#btn-buy-firerate .item-name').innerText = t('fire_rate');
+    document.querySelector('#btn-buy-shield .item-name').innerText = t('extra_shield');
+    document.querySelector('#btn-buy-piercing .item-name').innerText = t('piercing_missile');
+    document.querySelector('#btn-buy-magnet .item-name').innerText = t('coin_magnet');
+    document.getElementById('btn-close-shop').innerText = t('close_shop');
+
+    document.querySelector('#game-over-screen h1').innerText = t('game_over');
+    document.getElementById('final-score').innerText = `${t('cash')}0`;
+    document.querySelector('#name-entry p').innerText = t('enter_name');
+    document.getElementById('submit-name-btn').innerText = t('btn_enter');
+    document.getElementById('restart-msg').innerText = t('press_any_key');
+
     // 1. Setup Elements & Variables declaration
     const introScreen = document.getElementById('intro-screen');
     const loadingText = document.getElementById('loading-text');
@@ -51,7 +76,7 @@ async function init() {
 
     // 3. Start Asset Loading
     await loadAssets((percent) => {
-        loadingText.innerText = `LOADING ${percent}%`;
+        loadingText.innerText = `${t('loading')} ${percent}%`;
     });
 
     // 4. Load High Scores
@@ -61,8 +86,13 @@ async function init() {
     // 5. Loading Complete
     assetsLoaded = true;
     loadingText.style.display = 'none';
-    startText.style.display = 'block';
+    startText.style.display = 'none'; // We don't need this anymore since we auto-start
     // High scores now handled by Canvas in Game.js, keep DOM version hidden
+
+    // Auto-start immediately!
+    setTimeout(() => {
+        startGame();
+    }, 500); // 500ms delay to let the user see 100% for a fraction of a second
 
     // 6. Start Game Logic
     function startGame() {
