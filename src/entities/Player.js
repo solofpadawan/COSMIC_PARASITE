@@ -213,8 +213,8 @@ export class Player {
             ctx.ellipse(
                 this.x + this.width / 2,
                 this.y + this.height / 2,
-                this.width * 0.6,
-                this.height * 0.8,
+                this.width * 0.75,
+                this.height * 1.2,
                 0, 0, Math.PI * 2
             );
             ctx.stroke();

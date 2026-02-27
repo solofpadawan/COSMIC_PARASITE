@@ -11,6 +11,7 @@ import { SpeedUp } from '../entities/SpeedUp.js';
 import { Environment } from '../environment/Environment.js';
 import { ScoreManager } from './ScoreManager.js';
 import { CANVAS_WIDTH, CANVAS_HEIGHT, GAME_STATE, Keys } from '../utils/Constants.js';
+import { t } from '../utils/Language.js';
 
 export class Game {
     constructor(ctx, scoreManager) {
@@ -373,7 +374,7 @@ export class Game {
             this.ctx.font = '24px "Courier New", Courier, monospace';
             this.ctx.fillStyle = '#00ff00'; // Matrix Green or maybe Magenta?
             this.ctx.textAlign = 'center';
-            this.ctx.fillText("Press any key to start!", CANVAS_WIDTH / 2, CANVAS_HEIGHT - 40);
+            this.ctx.fillText(t('press_any_key_start'), CANVAS_WIDTH / 2, CANVAS_HEIGHT - 40);
         }
 
         // Draw High Score Table (Animated)
@@ -406,7 +407,7 @@ export class Game {
         this.ctx.textAlign = 'center';
         this.ctx.shadowColor = '#00ff00';
         this.ctx.shadowBlur = 10;
-        this.ctx.fillText('TOP 20 PILOTS', CANVAS_WIDTH / 2, tableY + 35);
+        this.ctx.fillText(t('top_pilots'), CANVAS_WIDTH / 2, tableY + 35);
         this.ctx.shadowBlur = 0;
 
         // Draw Scores in 2 Columns
@@ -435,7 +436,7 @@ export class Game {
             // Score (Yellow)
             this.ctx.fillStyle = '#ffff00';
             this.ctx.textAlign = 'right';
-            this.ctx.fillText(`R$ ${scoreStr},00`, x + colWidth - 40, y);
+            this.ctx.fillText(`${t('currency')}${scoreStr},00`, x + colWidth - 40, y);
             this.ctx.textAlign = 'left';
         }
 
@@ -967,7 +968,7 @@ export class Game {
             this.ctx.textAlign = 'center';
             this.ctx.shadowColor = '#000';
             this.ctx.shadowBlur = 8;
-            this.ctx.fillText('Em desenvolvimento...', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
+            this.ctx.fillText(t('in_development'), CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
             this.ctx.restore();
         }
     }
@@ -980,17 +981,17 @@ export class Game {
         this.ctx.shadowColor = 'black';
         this.ctx.shadowBlur = 0;
 
-        this.ctx.fillText("GRANA: R$ " + this.score + ",00", 20, 30);
+        this.ctx.fillText(t('money') + this.score + ",00", 20, 30);
 
         // Draw Distance (e.g. 1.2 km)
         this.ctx.font = 'bold 16px "Courier New", monospace';
         this.ctx.fillStyle = '#AAAAAA';
         const km = (this.distance / 1000).toFixed(1);
-        this.ctx.fillText("DIST: " + km + " km", 20, 50);
+        this.ctx.fillText(t('dist') + km + " km", 20, 50);
 
         if (this.godMode) {
             this.ctx.fillStyle = '#00FF00';
-            this.ctx.fillText("GOD MODE", 20, 80); // Moved down
+            this.ctx.fillText(t('god_mode'), 20, 80); // Moved down
         }
 
         // Draw PAUSED Overlay
@@ -1009,7 +1010,7 @@ export class Game {
                 this.ctx.textBaseline = 'middle';
                 this.ctx.shadowColor = 'black';
                 this.ctx.shadowBlur = 4;
-                this.ctx.fillText("PAUSADO", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 50); // Moved down 50px
+                this.ctx.fillText(t('paused'), CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 50); // Moved down 50px
             }
             this.ctx.restore();
         }
@@ -1294,6 +1295,10 @@ export class Game {
         this.isTransitioningToShop = false;
         this.setPaused(false);
 
+        // Aplicar um cooldown para evitar que o player atire imediatamente ao sair da loja
+        this.player.shootTimer = 30;
+        this.player.canShoot = false;
+
         // Start a slow fade-in on the black background
         this.fadeAlpha = 1; // Força a tela preta totalmente
         this.fadeState = 'FADE_IN';
@@ -1302,7 +1307,7 @@ export class Game {
 
     updateShopUI() {
         const balanceEl = document.getElementById('shop-balance');
-        if (balanceEl) balanceEl.innerText = `GRANA: R$ ${this.score},00`;
+        if (balanceEl) balanceEl.innerText = `${t('money')}${this.score},00`;
 
         const btnSpread = document.getElementById('btn-buy-spread');
         const btnFireRate = document.getElementById('btn-buy-firerate');
@@ -1326,37 +1331,41 @@ export class Game {
         if (btnSpread) {
             btnSpread.disabled = this.score < 500 || this.player.weaponType === 'spread';
             if (this.player.weaponType === 'spread') {
-                btnSpread.querySelector('.item-name').innerText = "TIRO TRIPLO (COMPRADO)";
+                btnSpread.querySelector('.item-name').innerText = t('triple_shot_purchased');
             } else {
-                btnSpread.querySelector('.item-name').innerText = "TIRO TRIPLO";
+                btnSpread.querySelector('.item-name').innerText = t('triple_shot');
             }
         }
         if (btnPierce) {
             btnPierce.disabled = this.score < 1000 || this.player.weaponType === 'pierce';
             if (this.player.weaponType === 'pierce') {
-                btnPierce.querySelector('.item-name').innerText = "MÍSSIL PERF. (COMPRADO)";
+                btnPierce.querySelector('.item-name').innerText = t('piercing_missile_purchased');
             } else {
-                btnPierce.querySelector('.item-name').innerText = "MÍSSIL PERFURANTE";
+                btnPierce.querySelector('.item-name').innerText = t('piercing_missile');
             }
         }
         if (btnFireRate) {
             btnFireRate.disabled = this.score < 300 || this.player.fireRateLevel >= 3;
             if (this.player.fireRateLevel >= 3) {
-                btnFireRate.querySelector('.item-name').innerText = "CADÊNCIA + (MÁXIMO)";
+                btnFireRate.querySelector('.item-name').innerText = t('fire_rate_max');
+            } else {
+                btnFireRate.querySelector('.item-name').innerText = t('fire_rate');
             }
         }
         if (btnShield) {
             btnShield.disabled = this.score < 800 || this.player.hasShield;
             if (this.player.hasShield) {
-                btnShield.querySelector('.item-name').innerText = "ESCUDO (ATIVO)";
+                btnShield.querySelector('.item-name').innerText = t('extra_shield_active');
+            } else {
+                btnShield.querySelector('.item-name').innerText = t('extra_shield');
             }
         }
         if (btnMagnet) {
             btnMagnet.disabled = this.score < 700 || this.player.hasCoinMagnet;
             if (this.player.hasCoinMagnet) {
-                btnMagnet.querySelector('.item-name').innerText = "ÍMÃ (ATIVO)";
+                btnMagnet.querySelector('.item-name').innerText = t('coin_magnet_active');
             } else {
-                btnMagnet.querySelector('.item-name').innerText = "ÍMÃ DE MOEDAS";
+                btnMagnet.querySelector('.item-name').innerText = t('coin_magnet');
             }
         }
     }

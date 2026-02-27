@@ -5,8 +5,8 @@ export class SpeedUp {
         this.x = x;
         this.y = y;
         this.baseY = y;
-        this.width = 70; // Doubled size from 40
-        this.height = 70; // Doubled size from 40
+        this.width = 60; // Reduced size slightly from 70
+        this.height = 60; // Reduced size slightly from 70
         this.frames = Assets.speedUp;
         this.frameIndex = 0;
         this.frameTimer = 0;

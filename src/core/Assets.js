@@ -1,3 +1,5 @@
+import { getCurrentLanguage } from '../utils/Language.js';
+
 export const Assets = {
     helicopter: new Image(),
     helicopterLeft: new Image(),
@@ -71,10 +73,12 @@ export function loadAssets(onProgress) {
         Assets.ground.src = 'assets/images/ground_v4.png';
         Assets.ground.onload = onLoad;
 
-        Assets.groundShop.src = 'assets/images/ground_v4_shop_open.png';
+        const langStr = getCurrentLanguage() === 'pt' ? 'portuguese' : 'english';
+
+        Assets.groundShop.src = `assets/images/ground_v4_shop_open(${langStr}).png`;
         Assets.groundShop.onload = onLoad;
 
-        Assets.groundShopClosed.src = 'assets/images/ground_v4_shop_closed.png';
+        Assets.groundShopClosed.src = `assets/images/ground_v4_shop_close(${langStr}).png`;
         Assets.groundShopClosed.onload = onLoad;
 
         Assets.mist.src = 'assets/images/mist_texture.png';
