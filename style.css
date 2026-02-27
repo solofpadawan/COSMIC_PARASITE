@@ -285,21 +285,23 @@ body {
 }
 
 .shop-btn {
+    position: relative;
     background: #000;
     border: 3px solid #00ff00;
     color: #fff;
     padding: 15px 20px;
     font-family: 'Press Start 2P', monospace;
     font-size: 14px;
-    cursor: pointer;
     display: flex;
     justify-content: space-between;
     transition: all 0.2s;
+    pointer-events: none;
+    /* Mouse desativado conforme pedido */
 }
 
-.shop-btn:hover:not(:disabled) {
-    background: #00ff00;
-    color: #000;
+.shop-btn:hover:not(:disabled),
+.shop-btn.focused:not(:disabled) {
+    /* Mantém estilo padrão, seleção será por míssil apenas */
 }
 
 .shop-btn:disabled {
@@ -309,6 +311,7 @@ body {
 }
 
 .close-btn {
+    position: relative;
     margin-top: 40px;
     background: transparent;
     border: 2px solid #ff00ff;
@@ -316,12 +319,42 @@ body {
     padding: 15px 30px;
     font-family: 'Press Start 2P', monospace;
     font-size: 16px;
-    cursor: pointer;
+    pointer-events: none;
+    /* Mouse desativado */
 }
 
-.close-btn:hover {
-    background: #ff00ff;
-    color: #000;
+.close-btn:hover,
+.close-btn.focused {
+    /* Sem fundo sólido, usa míssil */
+}
+
+/* --- Hand Seletor --- */
+.shop-btn.focused::before,
+.close-btn.focused::before {
+    content: '';
+    position: absolute;
+    left: -110px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 100px;
+    height: 100px;
+    background-image: url('assets/images/alien_hand.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: right center;
+    image-rendering: crisp-edges;
+    image-rendering: pixelated;
+    animation: hoverHand 1s infinite alternate ease-in-out;
+}
+
+@keyframes hoverHand {
+    0% {
+        left: -110px;
+    }
+
+    100% {
+        left: -100px;
+    }
 }
 
 .hidden {

@@ -14,6 +14,7 @@ export const Assets = {
     groundIntro: new Image(),
     logo: new Image(),
     groundShop: new Image(),
+    groundShopClosed: new Image(),
     turn: [], // Array for turn frames
     coin: [], // Array for Coin frames
     speedUp: [], // Speed-up powerup frames
@@ -29,9 +30,9 @@ export const Assets = {
 export function loadAssets(onProgress) {
     return new Promise((resolve) => {
         let loaded = 0;
-        // Base images (16) + Turn (5) + Audio (4) + Enemy (45) + Explosion (28) + Coin (23) + Enemy02 (48) + SpeedUp (47)
-        // 16 + 5 + 4 + 45 + 28 + 23 + 48 + 47 = 216
-        const total = 216;
+        // Base images (17) + Turn (5) + Audio (4) + Enemy (45) + Explosion (28) + Coin (23) + Enemy02 (48) + SpeedUp (47)
+        // 17 + 5 + 4 + 45 + 28 + 23 + 48 + 47 = 217
+        const total = 217;
 
         const onLoad = () => {
             loaded++;
@@ -70,8 +71,11 @@ export function loadAssets(onProgress) {
         Assets.ground.src = 'assets/images/ground_v4.png';
         Assets.ground.onload = onLoad;
 
-        Assets.groundShop.src = 'assets/images/ground_v4_shop.png';
+        Assets.groundShop.src = 'assets/images/ground_v4_shop_open.png';
         Assets.groundShop.onload = onLoad;
+
+        Assets.groundShopClosed.src = 'assets/images/ground_v4_shop_closed.png';
+        Assets.groundShopClosed.onload = onLoad;
 
         Assets.mist.src = 'assets/images/mist_texture.png';
         Assets.mist.onload = onLoad;

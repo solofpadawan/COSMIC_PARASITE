@@ -54,10 +54,10 @@ export class Coin {
             const dist = Math.sqrt(dx * dx + dy * dy);
 
             // Magnet Radius of 500px translates into strong pull
-            const magnetRadius = 500;
+            const magnetRadius = 300;
             if (dist < magnetRadius && dist > 0) {
                 // The closer the coin is, the faster it pulls, or just a constant magnet speed
-                const pullSpeed = 15;
+                const pullSpeed = 4.0; // Diminuído pela metade a pedido do jogador (15 -> 7.5)
                 this.x += (dx / dist) * pullSpeed;
                 // Important: adjust baseY so the sine wave doesn't rubber-band it back down
                 this.baseY += (dy / dist) * pullSpeed;

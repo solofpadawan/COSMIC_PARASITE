@@ -63,8 +63,8 @@ export class Enemy02 {
         // X: Move consistently from right to left
         this.x = this.startX - (this.age * this.speed);
 
-        // Y: Zigzag (Sine wave)
-        this.y = this.startY + Math.sin(this.t + this.phaseOffset) * this.amplitude;
+        // Y: Zigzag (Sine wave) - inverted direction
+        this.y = this.startY - Math.sin(this.t + this.phaseOffset) * this.amplitude;
 
         // Add a tiny bit of horizontal wobble for organic movement
         this.x += Math.sin(this.t * 3) * 15;

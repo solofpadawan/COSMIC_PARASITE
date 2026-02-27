@@ -41,6 +41,11 @@ export class Game {
         this.barrageTimer = 0;
         this.barrageComplete = false;
 
+        // Post-Shop Waves
+        this.postShopWave1Spawned = false;
+        this.postShopWave2Spawned = false;
+        this.postShopWave2Timer = 0;
+
         // Dev Message (after Easter Egg exits)
         this.showDevMessage = false;
 
@@ -57,6 +62,8 @@ export class Game {
         // Shop State
         this.shopOpen = false;
         this.shopVisited = false;
+        this.shopPurchased = false;
+        this.shopSelectedIndex = 0; // Focus index: 0-4 items, 5 close
 
         // Bind for events
         this.submitName = this.submitName.bind(this);
@@ -217,6 +224,11 @@ export class Game {
             }
         }
 
+        // Handle Shop UI Navigation
+        if (this.shopOpen) {
+            this.handleShopInput();
+        }
+
         // Handle Global Fade
         if (this.fadeState === 'FADE_OUT') {
             this.fadeAlpha += this.fadeSpeed * (dt * 60); // Apply dt to fade too
@@ -337,7 +349,7 @@ export class Game {
     }
 
     drawStartScreen() {
-        this.environment.draw(this.ctx);
+        this.environment.draw(this.ctx, this.shopVisited && !this.shopOpen && !this.isTransitioningToShop);
         // Removed Player draw
         // Player is hidden
 
@@ -525,11 +537,14 @@ export class Game {
             const shopY = this.environment.groundY - extraHeight;
 
             // Retângulo aproximado da porta da loja (metade direita, inferior)
+            // Retângulo ajustado para a vitrine de armas (red box da imagem)
+            // Começa um pouco antes da metade (ex: 35%) até perto do fim (ex: largura de 40%)
+            // E na altura, fica na parte mais inferior, abaixo do letreiro "LOJA" (ex: y = 65% a 95%)
             const doorRect = {
-                x: this.environment.shopX + shopDrawW * 0.5, // Começa na metade da loja
-                y: shopY + shopDrawH * 0.5, // Começa na metade inferior
-                width: shopDrawW * 0.4,
-                height: shopDrawH * 0.5
+                x: this.environment.shopX + shopDrawW * 0.35, // Começa mais centralizado sob o letreiro
+                y: shopY + shopDrawH * 0.70, // Começa bem para baixo, onde ficam as armas
+                width: shopDrawW * 0.40, // Pega a largura da vitrine (40% do total)
+                height: shopDrawH * 0.25 // Altura suficiente da vitrine
             };
 
             // Se o player encostar nessa área:
@@ -543,14 +558,61 @@ export class Game {
         // dt is roughly 1/60s normally, so dt accumulates to seconds
         this.speedUpTimer += dt;
         if (this.speedUpTimer >= this.nextSpeedUpDelay) {
-            this.speedUpTimer = 0;
-            this.nextSpeedUpDelay = Math.random() * 10 + 20; // 20 to 30 seconds for the next one
+            let canSpawn = true;
+            const spawnX = CANVAS_WIDTH + 50;
+            const speedUpWidth = 50;
+            const speedUpHeight = 50;
 
-            // Random Y on the screen, keeping it within player reachable bounds (100 to CANVAS_HEIGHT - 100)
+            // Random Y on the screen
             const randomY = 100 + Math.random() * (CANVAS_HEIGHT - 200);
 
-            // Spawns slightly off-screen to the right and floats in
-            this.speedUps.push(new SpeedUp(CANVAS_WIDTH + 50, randomY));
+            const speedUpRect = { x: spawnX, y: randomY, width: speedUpWidth, height: speedUpHeight };
+
+            // Ensure it does not spawn over the Shop
+            if (this.environment.shopActive) {
+                const shopWidth = Assets.groundShop.width ? Assets.groundShop.width * this.environment.groundScale : 0;
+                if (spawnX + speedUpWidth > this.environment.shopX && spawnX < this.environment.shopX + shopWidth) {
+                    canSpawn = false;
+                }
+            }
+
+            // Ensure it does not spawn over the Easter Egg
+            if (canSpawn && this.environment.easterEgg) {
+                const egg = this.environment.easterEgg;
+                if (spawnX + speedUpWidth > egg.x && spawnX < egg.x + egg.width) {
+                    canSpawn = false;
+                }
+            }
+
+            // Ensure it does not spawn over ANY enemy (like cabeção)
+            if (canSpawn) {
+                for (let enemy of this.enemies) {
+                    // Check if the generated rect overlaps the enemy's current position
+                    if (this.checkCollision(speedUpRect, enemy)) {
+                        canSpawn = false;
+                        break;
+                    }
+                }
+            }
+
+            // Ensure it does not spawn over giant missiles
+            if (canSpawn) {
+                for (let proj of this.enemyProjectiles) {
+                    if (this.checkCollision(speedUpRect, proj)) {
+                        canSpawn = false;
+                        break;
+                    }
+                }
+            }
+
+            if (canSpawn) {
+                this.speedUpTimer = 0;
+                this.nextSpeedUpDelay = Math.random() * 10 + 20; // 20 to 30 seconds for the next one
+                this.speedUps.push(new SpeedUp(spawnX, randomY));
+            } else {
+                // If blocked, try again in 0.5s instead of resetting the whole timer
+                this.speedUpTimer -= 0.5;
+            }
         }
 
         // --- Giant Missile Barrage ---
@@ -579,6 +641,26 @@ export class Game {
         // Check if Easter Egg exited the screen
         if (this.distance >= 20000 && !this.showDevMessage) {
             this.showDevMessage = true;
+        }
+
+        // --- Post-Shop Waves ---
+        if (this.environment.shopActive) {
+            const shopDrawW = Assets.groundShop.width * this.environment.groundScale;
+            // Trigger first wave when the shop is almost off-screen (left edge < 0)
+            // Wait until it's comfortably mostly off screen, e.g., shopX + shopDrawW < 100
+            if (this.environment.shopX + shopDrawW < 500 && !this.postShopWave1Spawned) {
+                this.spawnWave04();
+                this.postShopWave1Spawned = true;
+                this.postShopWave2Timer = 10.0; // 8 seconds delay before wave 2
+            }
+        }
+
+        if (this.postShopWave1Spawned && !this.postShopWave2Spawned) {
+            this.postShopWave2Timer -= dt;
+            if (this.postShopWave2Timer <= 0) {
+                this.spawnWave05();
+                this.postShopWave2Spawned = true;
+            }
         }
 
 
@@ -865,7 +947,7 @@ export class Game {
     }
 
     drawPlaying() {
-        this.environment.draw(this.ctx);
+        this.environment.draw(this.ctx, this.shopVisited && !this.shopOpen && !this.isTransitioningToShop);
         this.player.draw(this.ctx);
         this.enemies.forEach(enemy => enemy.draw(this.ctx));
         this.enemyProjectiles.forEach(proj => proj.draw(this.ctx));
@@ -968,8 +1050,8 @@ export class Game {
 
     spawnWave01() {
         // Spawn 10 enemies, one after another
-        const count = 10;
-        const delayBetween = 40; // Frames between each enemy (Slow snake)
+        const count = 5;
+        const delayBetween = 80; // Frames between each enemy (Slow snake)
 
         // Decide spawn direction for the ENTIRE wave
         // 50% chance Top-Down (1), 50% chance Bottom-Up (-1)
@@ -982,8 +1064,8 @@ export class Game {
     }
 
     spawnWave02() {
-        const count = 10;
-        const delayBetween = 40;
+        const count = 5;
+        const delayBetween = 80;
 
         // Opposite direction of Wave 1
         const waveDirection = -this.lastWaveDirection;
@@ -1005,7 +1087,35 @@ export class Game {
             // startY, phaseOffset
             // To make them follow each other exactly in a snake:
             // same Y, phaseOffset = i * -1.0; 
-            this.enemies.push(new Enemy02(i * delayBetween, 250, i * -0.2));
+            // Começando mais do topo (ex: Y=50) em vez do meio (250)
+            this.enemies.push(new Enemy02(i * delayBetween, 200, i * -0.2));
+        }
+    }
+
+    spawnWave04() {
+        // Spawn 10 enemies, one after another
+        const count = 10;
+        const delayBetween = 40; // Frames between each enemy (Slow snake)
+
+        // Decide spawn direction for the ENTIRE wave
+        // 50% chance Top-Down (1), 50% chance Bottom-Up (-1)
+        // Store direction for Wave 2
+        this.lastWaveDirection = Math.random() < 0.5 ? 1 : -1;
+
+        for (let i = 0; i < count; i++) {
+            this.enemies.push(new Enemy(i * delayBetween, this.lastWaveDirection));
+        }
+    }
+
+    spawnWave05() {
+        const count = 10;
+        const delayBetween = 40;
+
+        // Opposite direction of Wave 1
+        const waveDirection = -this.lastWaveDirection;
+
+        for (let i = 0; i < count; i++) {
+            this.enemies.push(new Enemy(i * delayBetween, waveDirection));
         }
     }
 
@@ -1045,7 +1155,7 @@ export class Game {
     }
 
     drawGameOver() {
-        this.environment.draw(this.ctx);
+        this.environment.draw(this.ctx, this.shopVisited && !this.shopOpen && !this.isTransitioningToShop);
         // Draw Enemies (Frozen or just last state)
         this.enemies.forEach(enemy => enemy.draw(this.ctx));
         this.enemyProjectiles.forEach(proj => proj.draw(this.ctx));
@@ -1079,11 +1189,15 @@ export class Game {
         this.barrageCount = 0;
         this.barrageTimer = 0;
         this.barrageComplete = false;
+        this.postShopWave1Spawned = false;
+        this.postShopWave2Spawned = false;
+        this.postShopWave2Timer = 0;
         this.showDevMessage = false;
         this.score = 0;
         this.distance = 0;
         this.shopOpen = false;
         this.shopVisited = false;
+        this.shopPurchased = false;
 
         // Reset Player Upgrades
         this.player.weaponType = 'single';
@@ -1169,12 +1283,21 @@ export class Game {
 
     closeShop() {
         if (!this.shopOpen) return;
+
         this.shopOpen = false;
+
+        // Hide Shop DOM immediately
+        const shopScreen = document.getElementById('shop-screen');
+        if (shopScreen) shopScreen.classList.add('hidden');
+
+        // Unpause game
         this.isTransitioningToShop = false;
         this.setPaused(false);
 
-        const shopScreen = document.getElementById('shop-screen');
-        if (shopScreen) shopScreen.classList.add('hidden');
+        // Start a slow fade-in on the black background
+        this.fadeAlpha = 1; // Força a tela preta totalmente
+        this.fadeState = 'FADE_IN';
+        this.fadeSpeed = 0.01; // Velocidade lenta, como pedido
     }
 
     updateShopUI() {
@@ -1186,6 +1309,19 @@ export class Game {
         const btnShield = document.getElementById('btn-buy-shield');
         const btnPierce = document.getElementById('btn-buy-piercing');
         const btnMagnet = document.getElementById('btn-buy-magnet');
+        const btnClose = document.getElementById('btn-close-shop');
+
+        // Update focus classes
+        const buttons = [btnSpread, btnFireRate, btnShield, btnPierce, btnMagnet, btnClose];
+        buttons.forEach((btn, index) => {
+            if (btn) {
+                if (index === this.shopSelectedIndex) {
+                    btn.classList.add('focused');
+                } else {
+                    btn.classList.remove('focused');
+                }
+            }
+        });
 
         if (btnSpread) {
             btnSpread.disabled = this.score < 500 || this.player.weaponType === 'spread';
@@ -1225,11 +1361,35 @@ export class Game {
         }
     }
 
+    handleShopInput() {
+        if (Keys.UI_Down) {
+            this.shopSelectedIndex++;
+            if (this.shopSelectedIndex > 5) this.shopSelectedIndex = 0;
+            this.updateShopUI();
+        } else if (Keys.UI_Up) {
+            this.shopSelectedIndex--;
+            if (this.shopSelectedIndex < 0) this.shopSelectedIndex = 5;
+            this.updateShopUI();
+        }
+
+        if (Keys.UI_Accept) {
+            switch (this.shopSelectedIndex) {
+                case 0: document.getElementById('btn-buy-spread')?.click(); break;
+                case 1: document.getElementById('btn-buy-firerate')?.click(); break;
+                case 2: document.getElementById('btn-buy-shield')?.click(); break;
+                case 3: document.getElementById('btn-buy-piercing')?.click(); break;
+                case 4: document.getElementById('btn-buy-magnet')?.click(); break;
+                case 5: document.getElementById('btn-close-shop')?.click(); break;
+            }
+        }
+    }
+
     buySpread() {
         if (this.score >= 500 && this.player.weaponType !== 'spread') {
             this.score -= 500;
             this.player.weaponType = 'spread';
             this.audio.playCoinSound();
+            this.shopPurchased = true;
             this.updateShopUI();
         }
     }
@@ -1239,6 +1399,7 @@ export class Game {
             this.score -= 300;
             this.player.fireRateLevel++;
             this.audio.playCoinSound();
+            this.shopPurchased = true;
             this.updateShopUI();
         }
     }
@@ -1248,6 +1409,7 @@ export class Game {
             this.score -= 800;
             this.player.hasShield = true;
             this.audio.playCoinSound();
+            this.shopPurchased = true;
             this.updateShopUI();
         }
     }
@@ -1257,6 +1419,7 @@ export class Game {
             this.score -= 1000;
             this.player.weaponType = 'pierce';
             this.audio.playCoinSound();
+            this.shopPurchased = true;
             this.updateShopUI();
         }
     }
@@ -1266,6 +1429,7 @@ export class Game {
             this.score -= 700;
             this.player.hasCoinMagnet = true;
             this.audio.playCoinSound();
+            this.shopPurchased = true;
             this.updateShopUI();
         }
     }

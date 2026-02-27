@@ -384,8 +384,9 @@ export class Environment {
         }
     }
 
-    draw(ctx) {
+    draw(ctx, shopVisited = false) {
         this.currentBg.draw(ctx);
+        this.shopVisited = shopVisited; // Armazena estado para desenhar a loja
 
         // Darken overlay for Play Background (Atmosphere)
         if (this.currentBg === this.bgPlay) {
@@ -415,31 +416,22 @@ export class Environment {
             }
 
             // Draw Loop Tiles
-            // We start drawing from groundLoop.x
-            // But wait, groundLoop.x tracks the "first" tile of the infinite loop.
-            // If Intro is still visible (x > -width), then groundLoop.x should be exactly Intro.x + Intro.width.
-            // Does our logic guarantee that?
-            // Yes, both move at same speed. Initial positions were aligned.
-            // Only catch: The "Loop Logic" (if x < -width, x += width) might desync if we process it too early.
-            // Actually, if Intro is at -100, and Loop is attached at +Width-100...
-            // When Loop resets, it jumps back.
-            // We just need to make sure we draw enough tiles to cover the screen.
-
-            let currentX = this.groundLoop.x;
-
-            // Optimization: If Intro is taking up screen space, we might not need to draw many loop tiles yet.
-            // But standard loop is fine.
-
-            while (currentX < CANVAS_WIDTH) {
-                if (currentX > -this.groundLoop.width) {
-                    ctx.drawImage(
-                        this.groundLoop.img,
-                        0, 0, this.groundLoop.img.width, this.groundLoop.img.height,
-                        Math.floor(currentX), this.groundY,
-                        this.groundLoop.width, this.groundLoop.img.height * this.groundScale
-                    );
+            // Draw Ground Loop
+            // Find how many images needed
+            if (this.groundLoop && this.groundLoop.img.complete) {
+                let numImg = Math.ceil(CANVAS_WIDTH / this.groundLoop.width) + 1;
+                let currentX = this.groundLoop.x;
+                for (let i = 0; i < numImg; i++) {
+                    if (currentX + this.groundLoop.width > 0) {
+                        ctx.drawImage(
+                            this.groundLoop.img,
+                            0, 0, this.groundLoop.img.width, this.groundLoop.img.height,
+                            Math.floor(currentX), this.groundY,
+                            this.groundLoop.width, this.groundLoop.img.height * this.groundScale
+                        );
+                    }
+                    currentX += this.groundLoop.width;
                 }
-                currentX += this.groundLoop.width;
             }
         }
 
@@ -454,16 +446,19 @@ export class Environment {
         }
 
         if (this.shopActive && Assets.groundShop.complete) {
+            // A loja será renderizada fechada VIZUALMENTE se o Game disser que ela já foi visitada mas não está aberta UI
+            const shopImg = this.shopVisited && Assets.groundShopClosed.complete ? Assets.groundShopClosed : Assets.groundShop;
+
             // Because shop image is 512x752 (taller than normal ground 512x512)
             // we shift its drawing coordinate UP by the difference
-            const extraHeight = (Assets.groundShop.height - this.groundLoop.img.height) * this.groundScale;
+            const extraHeight = (shopImg.height - this.groundLoop.img.height) * this.groundScale;
             const shopY = this.groundY - extraHeight;
 
             ctx.drawImage(
-                Assets.groundShop,
-                0, 0, Assets.groundShop.width, Assets.groundShop.height,
+                shopImg,
+                0, 0, shopImg.width, shopImg.height,
                 Math.floor(this.shopX), shopY,
-                Assets.groundShop.width * this.groundScale, Assets.groundShop.height * this.groundScale
+                shopImg.width * this.groundScale, shopImg.height * this.groundScale
             );
         }
     }

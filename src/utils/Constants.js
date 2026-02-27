@@ -12,7 +12,10 @@ export const Keys = {
     d: false,
     Space: false,
     Pause: false,
-    FastForward: false
+    FastForward: false,
+    UI_Up: false,
+    UI_Down: false,
+    UI_Accept: false
 };
 
 export const GAME_STATE = {

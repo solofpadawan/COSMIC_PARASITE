@@ -37,7 +37,7 @@ export class Player {
         // Upgrades
         this.weaponType = 'single'; // 'single' ou 'spread'
         this.fireRateLevel = 0; // 0, 1, 2, 3
-        this.baseShootCooldown = 15; // frames
+        this.baseShootCooldown = 25; // frames (Aumentou de 15 para 25 para reduzir cadência base)
         this.hasShield = false;
         this.shieldVisualTimer = 0;
         this.hasCoinMagnet = false;
@@ -121,8 +121,8 @@ export class Player {
         if (Keys.Space) {
             if (this.canShoot && this.shootTimer <= 0) {
                 this.shoot();
-                // Calcula cooldown baseado no nível: 15, 12, 9, 6
-                const cooldown = Math.max(5, this.baseShootCooldown - (this.fireRateLevel * 3));
+                // Calcula cooldown baseado no nível: ex: 25, 18, 11, 5
+                const cooldown = Math.max(5, this.baseShootCooldown - (this.fireRateLevel * 7));
                 this.shootTimer = cooldown;
                 this.canShoot = false;
             }
@@ -237,25 +237,24 @@ export class Player {
 
             if (this.weaponType === 'spread') {
                 // Three bullets: Straight, Angled Up, Angled Down
-                // We calculate velocity based on direction.
-                // Base speed is handled inside Projectile, but we can pass a velocity object.
-                // Since Projectile multiplies its internal `speed` by vx and vy if we pass an object,
-                // we should pass normalized vectors. Actually, wait. Projectile.js says:
-                // this.vx = directionOrVelocity.vx; this.vy = directionOrVelocity.vy;
-                // It does NOT multiply by speed if it's an object. 
-                // So we need to calculate the precise vx and vy here.
+                // Calculate normalized vectors so absolute speed is identical to single shot
+                const baseSpeed = 6 * this.bulletSpeedMultiplier;
+                const angle = 0.466; // approx Math.tan(25 degrees)
 
-                const baseSpeed = 6 * this.bulletSpeedMultiplier; // Match Projectile's base speed logic
-                const angle = 0.466; // approx Math.tan(25 degrees). Steeper angle matches image.
+                // Calculate magnitude to normalize
+                const mag = Math.sqrt(1 + angle * angle); // sqrt(1 + 0.217) = 1.103
 
-                const vxFront = fireDirection === 'right' ? baseSpeed : -baseSpeed;
-                const vyAngle = baseSpeed * angle;
+                const vxNorm = baseSpeed / mag;
+                const vyNorm = (baseSpeed * angle) / mag;
+
+                const vxFront = fireDirection === 'right' ? vxNorm : -vxNorm;
 
                 // Top (Angles Up)
-                const b1 = new Projectile(spawnX, this.y + this.height / 2 - 20, { vx: vxFront, vy: -vyAngle }, 'missile', 1);
+                const b1 = new Projectile(spawnX, this.y + this.height / 2 - 20, { vx: vxFront, vy: -vyNorm }, 'missile', 1);
                 // Mid (Straight)
                 const b2 = new Projectile(spawnX, this.y + this.height / 2, fireDirection, 'missile', this.bulletSpeedMultiplier);
-                const b3 = new Projectile(spawnX, this.y + this.height / 2 + 20, { vx: vxFront, vy: vyAngle }, 'missile', 1);
+                // Bottom (Angles Down)
+                const b3 = new Projectile(spawnX, this.y + this.height / 2 + 20, { vx: vxFront, vy: vyNorm }, 'missile', 1);
 
                 this.bullets.push(b1, b2, b3);
             } else if (this.weaponType === 'pierce') {

@@ -51,7 +51,7 @@ async function init() {
 
     // 3. Start Asset Loading
     await loadAssets((percent) => {
-        loadingText.innerText = `LOADING ${percent}%`;
+        loadingText.innerText = `CARREGANDO ${percent}%`;
     });
 
     // 4. Load High Scores
@@ -61,8 +61,13 @@ async function init() {
     // 5. Loading Complete
     assetsLoaded = true;
     loadingText.style.display = 'none';
-    startText.style.display = 'block';
+    startText.style.display = 'none'; // We don't need this anymore since we auto-start
     // High scores now handled by Canvas in Game.js, keep DOM version hidden
+
+    // Auto-start immediately!
+    setTimeout(() => {
+        startGame();
+    }, 500); // 500ms delay to let the user see 100% for a fraction of a second
 
     // 6. Start Game Logic
     function startGame() {
