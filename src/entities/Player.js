@@ -7,7 +7,7 @@ export class Player {
         this.audio = audio;
         this.x = 100;
         this.y = CANVAS_HEIGHT / 2;
-        this.speed = 2;
+        this.speed = 3.5;
         this.width = 75; // Increased Hitbox width (was 60)
         this.height = 37; // Increased Hitbox height (was 30)
 

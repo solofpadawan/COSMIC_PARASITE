@@ -18,8 +18,8 @@ export const Dictionary = {
         'coin_magnet_active': 'ÍMÃ (ATIVO)',
         'close_shop': '[ CONTINUAR VOO ]',
         'game_over': 'GAME OVER',
-        'cash': 'CASH: ',
-        'enter_name': 'DIGITE SEU NOME:',
+        'cash': 'Grana: ',
+        'enter_name': 'DIGITE O SEU NOME:',
         'btn_enter': '[ ENTER ]',
         'press_any_key': 'Pressione qualquer tecla',
 
@@ -65,7 +65,7 @@ export const Dictionary = {
         'paused': 'PAUSED',
 
         // Currency Symbol
-        'currency': '$ '
+        'currency': 'US$ '
     }
 };
 
@@ -78,6 +78,7 @@ export function detectLanguage() {
     } else {
         currentLanguage = 'en';
     }
+    currentLanguage = 'en'; //força o idioma para fins de testes.
 }
 
 export function t(key) {
