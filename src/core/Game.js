@@ -60,6 +60,7 @@ export class Game {
 
         this.floatingIslands = [];
         this.islandSpawnedAfterShop = false;
+        this.introIslandSpawned = false;
 
         this.state = GAME_STATE.START;
         this.startScreenTimer = 0; // Cooldown for start screen inputs
@@ -485,6 +486,16 @@ export class Game {
             this.rustyBgTriggered = true;
         }
 
+        // --- Intro Floating Island (after ground has scrolled in) ---
+        if (this.distance >= 1500 && !this.introIslandSpawned) {
+            const scale = this.environment.groundScale;
+            const islandHeight = Assets.floatingIsland.height * scale;
+            const islandY = (CANVAS_HEIGHT / 2) - (islandHeight / 2);
+            const islandSpeed = this.environment.groundSpeed * this.environment.baseSpeed;
+            this.floatingIslands.push(new FloatingIsland(CANVAS_WIDTH + 100, islandY, islandSpeed, scale));
+            this.introIslandSpawned = true;
+        }
+
         // Was 600 frames. Now 1000m (1.0km) -> Wave 1 spawns at 600m
         if (this.distance >= 600 && !this.wave01Spawned) {
             this.spawnWave01();
@@ -647,15 +658,23 @@ export class Game {
 
             // Trigger island spawn when shop is almost off-screen
             if (this.environment.shopX + shopDrawW < 600 && !this.islandSpawnedAfterShop) {
-                const islandX = CANVAS_WIDTH + 200;
-
-                // Create temp instance to get dimensions or use the asset directly
-                const scale = 0.65;
+                // Same scale as the ground — the island was made from ground tiles
+                const scale = this.environment.groundScale;
+                const islandWidth = Assets.floatingIsland.width * scale;
                 const islandHeight = Assets.floatingIsland.height * scale;
-                const islandY = (CANVAS_HEIGHT / 2) - (islandHeight / 2);
-
                 const islandSpeed = this.environment.groundSpeed * this.environment.baseSpeed;
-                this.floatingIslands.push(new FloatingIsland(islandX, islandY, islandSpeed));
+
+                // First island — centered vertically
+                const island1X = CANVAS_WIDTH + 200;
+                const island1Y = (CANVAS_HEIGHT / 2) - (islandHeight / 2);
+                this.floatingIslands.push(new FloatingIsland(island1X, island1Y, islandSpeed, scale));
+
+                // Second island — after the first, slightly higher
+                const gap = 300;
+                const island2X = island1X + islandWidth + gap;
+                const island2Y = (CANVAS_HEIGHT / 2) - (islandHeight / 2) - 60;
+                this.floatingIslands.push(new FloatingIsland(island2X, island2Y, islandSpeed, scale));
+
                 this.islandSpawnedAfterShop = true;
             }
 
@@ -976,12 +995,12 @@ export class Game {
 
     drawPlaying() {
         this.environment.draw(this.ctx, this.shopVisited && !this.shopOpen && !this.isTransitioningToShop);
+        this.floatingIslands.forEach(island => island.draw(this.ctx));
         this.player.draw(this.ctx);
         this.enemies.forEach(enemy => enemy.draw(this.ctx));
         this.enemyProjectiles.forEach(proj => proj.draw(this.ctx));
         this.coins.forEach(coin => coin.draw(this.ctx));
         this.speedUps.forEach(pu => pu.draw(this.ctx));
-        this.floatingIslands.forEach(island => island.draw(this.ctx));
         this.explosions.forEach(explosion => explosion.draw(this.ctx));
 
         // Draw Score
@@ -1219,6 +1238,9 @@ export class Game {
         this.barrageTimer = 0;
         this.barrageComplete = false;
         this.postShopWave1Spawned = false;
+        this.introIslandSpawned = false;
+        this.islandSpawnedAfterShop = false;
+        this.floatingIslands = [];
         this.postShopWave2Spawned = false;
         this.postShopWave2Timer = 0;
         this.showDevMessage = false;

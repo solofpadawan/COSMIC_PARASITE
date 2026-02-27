@@ -2,14 +2,13 @@ import { Assets } from '../core/Assets.js';
 import { CANVAS_WIDTH } from '../utils/Constants.js';
 
 export class FloatingIsland {
-    constructor(x, y, speed) {
+    constructor(x, y, speed, scale = 0.55) {
         this.x = x;
         this.y = y;
         this.speed = speed;
         this.image = Assets.floatingIsland;
 
-        // Scale the image to be slightly larger than the ground (0.5)
-        const scale = 0.65;
+        // Scale the image to be slightly larger than the ground
         this.width = this.image.width * scale;
         this.height = this.image.height * scale;
 
