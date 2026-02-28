@@ -124,6 +124,7 @@ export class InputHandler {
         Keys.ToggleFog = this.keyboardState.n || this.keyboardState.N;
         Keys.TogglePixelArt = this.keyboardState.o || this.keyboardState.O;
         Keys.ToggleLighting = this.keyboardState.l || this.keyboardState.L;
+        Keys.AddMoney = this.keyboardState.g || this.keyboardState.G;
 
         // Check single-press for Keyboard UI
         const currKbUp = this.keyboardState.ArrowUp || this.keyboardState.w;

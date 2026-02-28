@@ -82,7 +82,7 @@ export function detectLanguage() {
     } else {
         currentLanguage = 'en';
     }
-    currentLanguage = 'en'; //força o idioma para fins de testes.
+    //currentLanguage = 'en'; //força o idioma para fins de testes.
 }
 
 export function t(key) {

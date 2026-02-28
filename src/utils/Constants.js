@@ -20,7 +20,8 @@ export const Keys = {
     SkipDistance: false,
     ToggleLighting: false,
     ToggleFog: false,
-    TogglePixelArt: false
+    TogglePixelArt: false,
+    AddMoney: false
 };
 
 export const GAME_STATE = {

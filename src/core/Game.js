@@ -233,7 +233,7 @@ export class Game {
                 if (this.audio.music) this.audio.music.muted = true;
 
                 // Play activation sound (independent Audio object so it plays once even if muted)
-                const debugSfx = new Audio('assets/audio/eeeehaa!.wav');
+                const debugSfx = new Audio('assets/audio/eeeehaa!.ogg');
                 debugSfx.volume = 0.6;
                 debugSfx.play().catch(() => { });
 
@@ -307,6 +307,13 @@ export class Game {
             console.log("Pixel-Art:", this.pixelArtEnabled ? "ON" : "OFF");
         }
         this.lastPixelArtState = Keys.TogglePixelArt;
+
+        // ADD MONEY (G key - only in debug mode)
+        if (this.debugMode && Keys.AddMoney && !this.lastAddMoneyState) {
+            this.score += 1000;
+            console.log("DEBUG: +1000 cash! Total:", this.score);
+        }
+        this.lastAddMoneyState = Keys.AddMoney;
 
         // Try unlock audio with Gamepad
         if (this.audio.isLocked && this.input.gamepadActive) {
@@ -512,7 +519,7 @@ export class Game {
         this.ctx.save();
         // Add a slight blur to the background for depth
         const baseFilter = this.currentFilter === 'none' ? '' : this.currentFilter + ' ';
-        this.ctx.filter = baseFilter + 'blur(1px)';
+        this.ctx.filter = baseFilter + 'blur(1.4px)';
 
         this.environment.draw(this.ctx, this.shopVisited && !this.shopOpen && !this.isTransitioningToShop);
         this.ctx.restore();
@@ -536,8 +543,9 @@ export class Game {
             this.ctx.imageSmoothingEnabled = true;
             this.ctx.imageSmoothingQuality = 'high';
 
-            // Original glow
-            this.ctx.shadowBlur = 3;
+            // Pulsing glow effect
+            const pulse = Math.sin(Date.now() / 500) * 0.5 + 0.5; // 0 to 1
+            this.ctx.shadowBlur = 5 + pulse * 8; // pulses between 5 and 20
             this.ctx.shadowColor = '#00ff00';
 
             this.ctx.drawImage(logo, logoX, logoY, logoW, logoH);
@@ -948,16 +956,16 @@ export class Game {
                 // Base speed is 2, adding 0.5 is a 25% increase
                 // Base bullet speed is 6, adding 0.25 to the multiplier is a +1.5 increase
                 // Increase the speed slightly so it's noticeable but manageable
-                this.player.speed += 0.7; // era 0.5
+                this.player.speed += 0.5; // era 0.7
                 this.player.bulletSpeedMultiplier += 0.35; // era 0.25
 
                 // Add an upper cap if we want to prevent going infinitely fast
                 if (this.player.speed > 5) this.player.speed = 5;
                 if (this.player.bulletSpeedMultiplier > 2.5) this.player.bulletSpeedMultiplier = 2.5;
 
-                this.audio.playSFX('assets/audio/speed-up-sound.mp3');
+                this.audio.playSFX(Assets.audio.speedUpSound);
                 setTimeout(() => {
-                    this.audio.playSFX('assets/audio/speed-up-voice.mp3');
+                    this.audio.playSFX(Assets.audio.speedUpVoice);
                 }, 300); // Toca a voz 300ms (0.3s) depois do efeito sonoro
 
                 this.speedUps.splice(i, 1);
@@ -1013,7 +1021,7 @@ export class Game {
                     this.explosions.push(new Explosion(centerX, centerY));
 
                     // Play Explosion Sound
-                    this.audio.playSFX('assets/audio/explosion-enemy01.ogg');
+                    this.audio.playSFX(Assets.audio.explosion);
 
                     if (bullet.type !== 'pierce') {
                         break; // Bullet hits one enemy and disappears
@@ -1099,7 +1107,7 @@ export class Game {
 
                 // Spawn Explosion at Contact Point (Center of projectile)
                 this.explosions.push(new Explosion(proj.x + proj.width / 2, proj.y + proj.height / 2));
-                this.audio.playSFX('assets/audio/explosion-enemy01.ogg');
+                this.audio.playSFX(Assets.audio.explosion);
             }
         });
 
@@ -1113,7 +1121,7 @@ export class Game {
                 // Maybe no sound for bullet hit to avoid spam? Or quiet one.
                 // Keeping silent or reusing hit sound if available.
                 // Reuse explosion sound sparingly or just visual if spammy
-                this.audio.playSFX('assets/audio/explosion-enemy01.ogg');
+                this.audio.playSFX(Assets.audio.explosion);
             }
         }
 
@@ -1161,12 +1169,7 @@ export class Game {
             this.coins.push(new Coin(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2));
         }
 
-        this.audio.playSFX('assets/audio/explosion-enemy01.ogg');
-
-        // Play second explosion sound slightly later
-        setTimeout(() => {
-            this.audio.playSFX('assets/audio/explosion-enemy01.ogg');
-        }, 300);
+        this.audio.playSFX(Assets.audio.explosion);
 
         this.audio.fadeOut(2.0); // Fade out music over 2 seconds
 
@@ -1670,6 +1673,8 @@ export class Game {
         this.player.fireRateLevel = 0;
         this.player.hasShield = false;
         this.player.hasCoinMagnet = false;
+        this.purchasedSpread = false;
+        this.purchasedPierce = false;
 
         // Reset High Score Animation
         this.highScoreAnimState = 'HIDDEN';
@@ -1803,16 +1808,16 @@ export class Game {
         });
 
         if (btnSpread) {
-            btnSpread.disabled = this.score < 500 || this.player.weaponType === 'spread';
-            if (this.player.weaponType === 'spread') {
+            btnSpread.disabled = this.score < 500 || this.purchasedSpread;
+            if (this.purchasedSpread) {
                 btnSpread.querySelector('.item-name').innerText = t('triple_shot_purchased');
             } else {
                 btnSpread.querySelector('.item-name').innerText = t('triple_shot');
             }
         }
         if (btnPierce) {
-            btnPierce.disabled = this.score < 1000 || this.player.weaponType === 'pierce';
-            if (this.player.weaponType === 'pierce') {
+            btnPierce.disabled = this.score < 1000 || this.purchasedPierce;
+            if (this.purchasedPierce) {
                 btnPierce.querySelector('.item-name').innerText = t('piercing_missile_purchased');
             } else {
                 btnPierce.querySelector('.item-name').innerText = t('piercing_missile');
@@ -1868,10 +1873,12 @@ export class Game {
     }
 
     buySpread() {
-        if (this.score >= 500 && this.player.weaponType !== 'spread') {
+        if (this.score >= 500 && !this.purchasedSpread) {
             this.score -= 500;
             this.player.weaponType = 'spread';
-            this.audio.playCoinSound();
+            this.purchasedSpread = true;
+            this.audio.playSFX(Assets.audio.chaChing);
+            setTimeout(() => { this.audio.playSFX(Assets.audio.tripleShot); }, 400);
             this.shopPurchased = true;
             this.updateShopUI();
         }
@@ -1881,7 +1888,8 @@ export class Game {
         if (this.score >= 300 && this.player.fireRateLevel < 3) {
             this.score -= 300;
             this.player.fireRateLevel++;
-            this.audio.playCoinSound();
+            this.audio.playSFX(Assets.audio.chaChing);
+            setTimeout(() => { this.audio.playSFX(Assets.audio.cadence); }, 400);
             this.shopPurchased = true;
             this.updateShopUI();
         }
@@ -1891,17 +1899,20 @@ export class Game {
         if (this.score >= 800 && !this.player.hasShield) {
             this.score -= 800;
             this.player.hasShield = true;
-            this.audio.playCoinSound();
+            this.audio.playSFX(Assets.audio.chaChing);
+            setTimeout(() => { this.audio.playSFX(Assets.audio.extraShield); }, 400);
             this.shopPurchased = true;
             this.updateShopUI();
         }
     }
 
     buyPierce() {
-        if (this.score >= 1000 && this.player.weaponType !== 'pierce') {
+        if (this.score >= 1000 && !this.purchasedPierce) {
             this.score -= 1000;
             this.player.weaponType = 'pierce';
-            this.audio.playCoinSound();
+            this.purchasedPierce = true;
+            this.audio.playSFX(Assets.audio.chaChing);
+            setTimeout(() => { this.audio.playSFX(Assets.audio.piercingMissile); }, 400);
             this.shopPurchased = true;
             this.updateShopUI();
         }
@@ -1911,7 +1922,8 @@ export class Game {
         if (this.score >= 700 && !this.player.hasCoinMagnet) {
             this.score -= 700;
             this.player.hasCoinMagnet = true;
-            this.audio.playCoinSound();
+            this.audio.playSFX(Assets.audio.chaChing);
+            setTimeout(() => { this.audio.playSFX(Assets.audio.coinMagnet); }, 400);
             this.shopPurchased = true;
             this.updateShopUI();
         }

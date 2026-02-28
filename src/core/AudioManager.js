@@ -64,12 +64,22 @@ export class AudioManager {
         tryPlay();
     }
 
-    playSFX(src) {
+    playSFX(audioOrSrc, volume = 0.4) {
         if (this.muted) return;
-        const sfx = new Audio(src);
-        sfx.volume = 0.4;
+
+        let sfx;
+        if (typeof audioOrSrc === 'string') {
+            sfx = new Audio(audioOrSrc);
+        } else if (audioOrSrc instanceof Audio) {
+            // Use cloneNode to allow overlapping sound playback
+            sfx = audioOrSrc.cloneNode();
+        } else {
+            return;
+        }
+
+        sfx.volume = volume;
         sfx.play().catch(e => {
-            // Ignore autoplay errors for rapid fire sfx usually
+            // Ignore autoplay errors
         });
     }
 
