@@ -519,7 +519,7 @@ export class Game {
         this.ctx.save();
         // Add a slight blur to the background for depth
         const baseFilter = this.currentFilter === 'none' ? '' : this.currentFilter + ' ';
-        this.ctx.filter = baseFilter + 'blur(1.4px)';
+        //this.ctx.filter = baseFilter + 'blur(1px)';
 
         this.environment.draw(this.ctx, this.shopVisited && !this.shopOpen && !this.isTransitioningToShop);
         this.ctx.restore();
@@ -545,7 +545,7 @@ export class Game {
 
             // Pulsing glow effect
             const pulse = Math.sin(Date.now() / 500) * 0.5 + 0.5; // 0 to 1
-            this.ctx.shadowBlur = 5 + pulse * 8; // pulses between 5 and 20
+            this.ctx.shadowBlur = 5 + pulse * 18; // pulses between 5 and 20
             this.ctx.shadowColor = '#00ff00';
 
             this.ctx.drawImage(logo, logoX, logoY, logoW, logoH);
@@ -579,7 +579,7 @@ export class Game {
         this.ctx.save();
 
         // Background
-        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
         this.ctx.strokeStyle = '#00ff00';
         this.ctx.lineWidth = 3;
         this.ctx.beginPath();
