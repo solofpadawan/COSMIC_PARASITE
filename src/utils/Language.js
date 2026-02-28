@@ -16,15 +16,17 @@ export const Dictionary = {
         'piercing_missile_purchased': 'MÍSSIL PERF. (COMPRADO)',
         'coin_magnet': 'ÍMÃ DE MOEDAS',
         'coin_magnet_active': 'ÍMÃ (ATIVO)',
-        'close_shop': '[ CONTINUAR VOO ]',
+        'close_shop': '[ SAIR DA LOJA ]',
         'game_over': 'GAME OVER',
-        'cash': 'CASH: ',
-        'enter_name': 'DIGITE SEU NOME:',
+        'cash': 'Grana: ',
+        'enter_name': 'DIGITE O SEU NOME:',
         'btn_enter': '[ ENTER ]',
         'press_any_key': 'Pressione qualquer tecla',
 
         // Canvas (Game.js)
         'press_any_key_start': 'Pressione qualquer tecla!',
+        'press_space_start': 'Pressione ESPAÇO para Iniciar!',
+        'press_button_start': 'Aperte (A) para Iniciar!',
         'in_development': 'Em desenvolvimento...',
         'dist': 'DIST: ',
         'god_mode': 'GOD MODE',
@@ -50,7 +52,7 @@ export const Dictionary = {
         'piercing_missile_purchased': 'PIERCING (BOUGHT)',
         'coin_magnet': 'COIN MAGNET',
         'coin_magnet_active': 'MAGNET (ACTIVE)',
-        'close_shop': '[ CONTINUE FLIGHT ]',
+        'close_shop': '[ EXIT SHOP ]',
         'game_over': 'GAME OVER',
         'cash': 'CASH: ',
         'enter_name': 'ENTER YOUR NAME:',
@@ -59,13 +61,15 @@ export const Dictionary = {
 
         // Canvas (Game.js)
         'press_any_key_start': 'Press any key to start!',
+        'press_space_start': 'Press SPACE to Start!',
+        'press_button_start': 'Press (A) to Start!',
         'in_development': 'In development...',
         'dist': 'DIST: ',
         'god_mode': 'GOD MODE',
         'paused': 'PAUSED',
 
         // Currency Symbol
-        'currency': '$ '
+        'currency': 'US$ '
     }
 };
 
@@ -78,6 +82,7 @@ export function detectLanguage() {
     } else {
         currentLanguage = 'en';
     }
+    //currentLanguage = 'en'; //força o idioma para fins de testes.
 }
 
 export function t(key) {

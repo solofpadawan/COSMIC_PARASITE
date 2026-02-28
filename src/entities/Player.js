@@ -7,7 +7,7 @@ export class Player {
         this.audio = audio;
         this.x = 100;
         this.y = CANVAS_HEIGHT / 2;
-        this.speed = 2;
+        this.speed = 2.2; // era 3.0
         this.width = 75; // Increased Hitbox width (was 60)
         this.height = 37; // Increased Hitbox height (was 30)
 
@@ -263,7 +263,7 @@ export class Player {
                 this.bullets.push(new Projectile(spawnX, this.y + this.height / 2, fireDirection, 'missile', this.bulletSpeedMultiplier));
             }
 
-            if (this.audio) this.audio.playSFX('assets/audio/shoot.ogg');
+            if (this.audio) this.audio.playSFX(Assets.audio.shoot, 0.3);
         }
     }
 }

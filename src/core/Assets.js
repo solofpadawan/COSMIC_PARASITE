@@ -23,6 +23,8 @@ export const Assets = {
     enemy01: [], // Array for Enemy 01 frames
     enemy02: [], // Array for Enemy 02 frames
     explosionEnemy01: [], // Explosion frames
+    alienHand: new Image(), // Shop selector hand
+    floatingIsland: new Image(), // Floating island obstacle
     audio: {
         shoot: new Audio(),
         explosion: new Audio()
@@ -32,9 +34,9 @@ export const Assets = {
 export function loadAssets(onProgress) {
     return new Promise((resolve) => {
         let loaded = 0;
-        // Base images (17) + Turn (5) + Audio (4) + Enemy (45) + Explosion (28) + Coin (23) + Enemy02 (48) + SpeedUp (47)
-        // 17 + 5 + 4 + 45 + 28 + 23 + 48 + 47 = 217
-        const total = 217;
+        // Base images (19) + Turn (5) + Audio (4+6) + Enemy (45) + Explosion (28) + Coin (23) + Enemy02 (48) + SpeedUp (47)
+        // 19 + 5 + 10 + 45 + 28 + 23 + 48 + 47 = 225
+        const total = 225;
 
         const onLoad = () => {
             loaded++;
@@ -54,7 +56,7 @@ export function loadAssets(onProgress) {
         Assets.missile.src = 'assets/images/missile_fixed.png';
         Assets.missile.onload = onLoad;
 
-        Assets.cave_bg.src = 'assets/images/cave_bg_v2.png'; // Old for Start
+        Assets.cave_bg.src = 'assets/images/cave_bg_intro_v3.png'; // New background for Start
         Assets.cave_bg.onload = onLoad;
 
         Assets.cave_bg_play.src = 'assets/images/cave_bg_huge.png'; // New for Play
@@ -94,8 +96,14 @@ export function loadAssets(onProgress) {
         Assets.groundEaster.src = 'assets/images/ground_easter.png';
         Assets.groundEaster.onload = onLoad;
 
-        Assets.logo.src = 'assets/images/logo_v5.png';
+        Assets.logo.src = 'assets/images/logo_v7.png';
         Assets.logo.onload = onLoad;
+
+        Assets.alienHand.src = 'assets/images/alien_hand.png';
+        Assets.alienHand.onload = onLoad;
+
+        Assets.floatingIsland.src = 'assets/images/floating_island01.png';
+        Assets.floatingIsland.onload = onLoad;
 
         // Load Turn Frames (01.png to 05.png)
         for (let i = 1; i <= 5; i++) {
@@ -114,18 +122,54 @@ export function loadAssets(onProgress) {
         Assets.audio.explosion.oncanplaythrough = onLoad;
 
         Assets.audio.speedUpVoice = new Audio();
-        Assets.audio.speedUpVoice.src = 'assets/audio/speed-up-voice.mp3';
+        Assets.audio.speedUpVoice.src = 'assets/audio/speed_up-voice.ogg';
         Assets.audio.speedUpVoice.oncanplaythrough = onLoad;
 
         Assets.audio.speedUpSound = new Audio();
-        Assets.audio.speedUpSound.src = 'assets/audio/speed-up-sound.mp3';
+        Assets.audio.speedUpSound.src = 'assets/audio/speed-up-sound.ogg';
         Assets.audio.speedUpSound.oncanplaythrough = onLoad;
 
         // Fallback in case audio fails or formats weirdly
-        Assets.audio.shoot.onerror = () => {
-            console.warn("Failed to load shoot.ogg");
+        const audioErrorFallback = (name) => {
+            console.warn(`Failed to load ${name}`);
             onLoad();
         };
+
+        Assets.audio.shoot.onerror = () => audioErrorFallback("shoot.ogg");
+        Assets.audio.explosion.onerror = () => audioErrorFallback("explosion-enemy01.ogg");
+        Assets.audio.speedUpVoice.onerror = () => audioErrorFallback("speed_up-voice.ogg");
+        Assets.audio.speedUpSound.onerror = () => audioErrorFallback("speed-up-sound.ogg");
+
+        // Shop Purchase Audio Preload
+        Assets.audio.chaChing = new Audio();
+        Assets.audio.chaChing.src = 'assets/audio/register-cha-ching.ogg';
+        Assets.audio.chaChing.oncanplaythrough = onLoad;
+        Assets.audio.chaChing.onerror = () => audioErrorFallback("register-cha-ching.ogg");
+
+        Assets.audio.tripleShot = new Audio();
+        Assets.audio.tripleShot.src = 'assets/audio/triple_shot.ogg';
+        Assets.audio.tripleShot.oncanplaythrough = onLoad;
+        Assets.audio.tripleShot.onerror = () => audioErrorFallback("triple_shot.ogg");
+
+        Assets.audio.cadence = new Audio();
+        Assets.audio.cadence.src = 'assets/audio/cadence.ogg';
+        Assets.audio.cadence.oncanplaythrough = onLoad;
+        Assets.audio.cadence.onerror = () => audioErrorFallback("cadence.ogg");
+
+        Assets.audio.extraShield = new Audio();
+        Assets.audio.extraShield.src = 'assets/audio/extra-shield.ogg';
+        Assets.audio.extraShield.oncanplaythrough = onLoad;
+        Assets.audio.extraShield.onerror = () => audioErrorFallback("extra-shield.ogg");
+
+        Assets.audio.piercingMissile = new Audio();
+        Assets.audio.piercingMissile.src = 'assets/audio/piercing_missile.ogg';
+        Assets.audio.piercingMissile.oncanplaythrough = onLoad;
+        Assets.audio.piercingMissile.onerror = () => audioErrorFallback("piercing_missile.ogg");
+
+        Assets.audio.coinMagnet = new Audio();
+        Assets.audio.coinMagnet.src = 'assets/audio/coin-magnet.ogg';
+        Assets.audio.coinMagnet.oncanplaythrough = onLoad;
+        Assets.audio.coinMagnet.onerror = () => audioErrorFallback("coin-magnet.ogg");
 
         // Load Enemy 01 Frames (000000.png to 000044.png)
         for (let i = 0; i <= 44; i++) {

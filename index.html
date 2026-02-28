@@ -12,7 +12,51 @@
 <body>
     <canvas id="gameCanvas" width="960" height="540"></canvas>
 
+    <!-- SVG Filter for RGB Channel Manipulation -->
+    <svg style="display: none;">
+        <filter id="rgb-filter">
+            <feColorMatrix type="matrix" values="1 0 0 0 0
+                        0 1 0 0 0
+                        0 0 1 0 0
+                        0 0 0 1 0" />
+        </filter>
+    </svg>
 
+    <!-- Debug Color Adjustment Panel -->
+    <div id="debug-color-panel" class="hidden">
+        <h3>COLOR GRADING</h3>
+        <div class="slider-group">
+            <label>Contraste: <span id="val-contrast">102</span>%</label>
+            <input type="range" id="debug-contrast" min="50" max="200" value="102">
+        </div>
+        <div class="slider-group">
+            <label>Brilho: <span id="val-brightness">150</span>%</label>
+            <input type="range" id="debug-brightness" min="50" max="200" value="150">
+        </div>
+        <div class="slider-group">
+            <label>Saturação: <span id="val-saturate">100</span>%</label>
+            <input type="range" id="debug-saturate" min="0" max="200" value="100">
+        </div>
+        <div class="slider-group">
+            <label>Hue: <span id="val-hue">0</span>deg</label>
+            <input type="range" id="debug-hue" min="0" max="360" value="0">
+        </div>
+        <hr>
+        <div class="slider-group">
+            <label>Red: <span id="val-r">1.0</span></label>
+            <input type="range" id="debug-r" min="0" max="2" step="0.1" value="1">
+        </div>
+        <div class="slider-group">
+            <label>Green: <span id="val-g">1.0</span></label>
+            <input type="range" id="debug-g" min="0" max="2" step="0.1" value="1">
+        </div>
+        <div class="slider-group">
+            <label>Blue: <span id="val-b">1.2</span></label>
+            <input type="range" id="debug-b" min="0" max="2" step="0.1" value="1.2">
+        </div>
+        <button id="debug-copy-btn" class="debug-panel-btn">COPIAR CONFIG</button>
+        <button id="debug-reset-btn" class="debug-panel-btn">RESTAURAR PADRÃO</button>
+    </div>
 
     <div id="intro-screen">
         <div class="intro-content">

@@ -2,6 +2,15 @@ export class AudioManager {
     constructor() {
         this.music = null;
         this.fadeInterval = null;
+        this.muted = false;
+    }
+
+    toggleMute() {
+        this.muted = !this.muted;
+        if (this.music) {
+            this.music.muted = this.muted;
+        }
+        console.log("Audio:", this.muted ? "MUTED" : "UNMUTED");
     }
 
     playMusic(src) {
@@ -19,6 +28,7 @@ export class AudioManager {
         this.music = new Audio(src);
         this.music.loop = true;
         this.music.volume = 0.5; // Default volume
+        this.music.muted = this.muted; // Respect current muted state
         this.isLocked = true;
 
         // Handling autoplay policies
@@ -54,11 +64,22 @@ export class AudioManager {
         tryPlay();
     }
 
-    playSFX(src) {
-        const sfx = new Audio(src);
-        sfx.volume = 0.4;
+    playSFX(audioOrSrc, volume = 0.4) {
+        if (this.muted) return;
+
+        let sfx;
+        if (typeof audioOrSrc === 'string') {
+            sfx = new Audio(audioOrSrc);
+        } else if (audioOrSrc instanceof Audio) {
+            // Use cloneNode to allow overlapping sound playback
+            sfx = audioOrSrc.cloneNode();
+        } else {
+            return;
+        }
+
+        sfx.volume = volume;
         sfx.play().catch(e => {
-            // Ignore autoplay errors for rapid fire sfx usually
+            // Ignore autoplay errors
         });
     }
 

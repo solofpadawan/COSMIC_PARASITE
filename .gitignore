@@ -1,0 +1,13 @@
+# IDEs e Editores
+.vscode/
+
+# Arquivos do Sistema Oeracional
+.DS_Store
+Thumbs.db
+
+# Pastas de Arquivos Brutos (Imagens, Screenshots, Fontes)
+/SOURCE/
+/raw_assets/
+
+# (Opcional) Ignorar o banco de dados local para não bugar o repo dos outros
+scores_cosmic.db

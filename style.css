@@ -299,10 +299,7 @@ body {
     /* Mouse desativado conforme pedido */
 }
 
-.shop-btn:hover:not(:disabled),
-.shop-btn.focused:not(:disabled) {
-    /* Mantém estilo padrão, seleção será por míssil apenas */
-}
+
 
 .shop-btn:disabled {
     border-color: #555;
@@ -323,10 +320,7 @@ body {
     /* Mouse desativado */
 }
 
-.close-btn:hover,
-.close-btn.focused {
-    /* Sem fundo sólido, usa míssil */
-}
+
 
 /* --- Hand Seletor --- */
 .shop-btn.focused::before,
@@ -357,6 +351,159 @@ body {
     }
 }
 
+/* --- Responsive Adjustments for Small Heights --- */
+@media (max-height: 750px) {
+    #shop-screen h1 {
+        font-size: 28px;
+        margin-bottom: 10px;
+    }
+
+    #shop-balance {
+        font-size: 18px;
+        margin-bottom: 20px;
+    }
+
+    .shop-items {
+        gap: 10px;
+    }
+
+    .shop-btn {
+        padding: 10px 15px;
+        font-size: 12px;
+        border-width: 2px;
+    }
+
+    .close-btn {
+        margin-top: 20px;
+        padding: 10px 20px;
+        font-size: 14px;
+    }
+
+    .shop-btn.focused::before,
+    .close-btn.focused::before {
+        width: 60px;
+        height: 60px;
+        left: -70px;
+    }
+
+    @keyframes hoverHand {
+        0% {
+            left: -70px;
+        }
+
+        100% {
+            left: -60px;
+        }
+    }
+}
+
+@media (max-height: 550px) {
+    #shop-screen h1 {
+        font-size: 20px;
+        margin-bottom: 5px;
+    }
+
+    #shop-balance {
+        font-size: 14px;
+        margin-bottom: 10px;
+    }
+
+    .shop-items {
+        gap: 5px;
+    }
+
+    .shop-btn {
+        padding: 8px 12px;
+        font-size: 10px;
+    }
+
+    .close-btn {
+        margin-top: 10px;
+        padding: 8px 15px;
+        font-size: 12px;
+    }
+
+    .shop-btn.focused::before,
+    .close-btn.focused::before {
+        width: 40px;
+        height: 40px;
+        left: -50px;
+    }
+
+    @keyframes hoverHand {
+        0% {
+            left: -50px;
+        }
+
+        100% {
+            left: -40px;
+        }
+    }
+}
+
 .hidden {
     display: none !important;
+}
+
+/* --- DEBUG COLOR PANEL --- */
+#debug-color-panel {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 200px;
+    background: rgba(0, 0, 0, 0.85);
+    border: 2px solid #00ff00;
+    padding: 15px;
+    z-index: 1000;
+    color: #00ff00;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 10px;
+}
+
+#debug-color-panel h3 {
+    margin: 0 0 10px 0;
+    text-align: center;
+    font-size: 12px;
+}
+
+.slider-group {
+    margin-bottom: 8px;
+}
+
+.slider-group label {
+    display: block;
+    margin-bottom: 4px;
+}
+
+.slider-group input {
+    width: 100%;
+    cursor: pointer;
+}
+
+.debug-panel-btn {
+    width: 100%;
+    background: #00ff00;
+    color: #000 !important;
+    border: none;
+    padding: 10px;
+    margin-top: 5px;
+    font-family: inherit;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 11px;
+    text-transform: uppercase;
+}
+
+
+.debug-panel-btn:hover {
+    filter: brightness(1.2);
+    box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+}
+
+
+
+hr {
+    border: 0;
+    border-top: 1px solid #444;
+    margin: 10px 0;
 }

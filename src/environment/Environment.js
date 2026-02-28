@@ -141,6 +141,8 @@ export class Environment {
         // Generate Collision Maps
         this.introMap = this.createCollisionMap(assets.groundIntro);
         this.loopMap = this.createCollisionMap(assets.ground);
+
+        this.fogEnabled = true;
     }
 
     createCollisionMap(image) {
@@ -313,12 +315,7 @@ export class Environment {
         this.currentBg.update(this.baseSpeed, dt);
 
         // Mist moves
-        if (this.currentBg === this.bgPlay && this.mistLayer) {
-            this.mistLayer.update(this.baseSpeed, dt);
-        }
-
-        // Mist moves
-        if (this.currentBg === this.bgPlay) {
+        if (this.currentBg === this.bgPlay && this.mistLayer && this.fogEnabled) {
             this.mistLayer.update(this.baseSpeed, dt);
         }
 
@@ -397,7 +394,7 @@ export class Environment {
         }
 
         // Draw Mist (Start or Play? User implies game scene)
-        if (this.currentBg === this.bgPlay && this.mistLayer) {
+        if (this.currentBg === this.bgPlay && this.mistLayer && this.fogEnabled) {
             ctx.save();
             ctx.globalAlpha = 0.3; // Semi-transparent
             this.mistLayer.draw(ctx);
@@ -446,7 +443,7 @@ export class Environment {
         }
 
         if (this.shopActive && Assets.groundShop.complete) {
-            // A loja será renderizada fechada VIZUALMENTE se o Game disser que ela já foi visitada mas não está aberta UI
+            // A loja será renderizada fechada VISUALMENTE se o Game disser que ela já foi visitada mas não está aberta UI
             const shopImg = this.shopVisited && Assets.groundShopClosed.complete ? Assets.groundShopClosed : Assets.groundShop;
 
             // Because shop image is 512x752 (taller than normal ground 512x512)

@@ -143,7 +143,7 @@ export class Enemy {
     }
 
     draw(ctx) {
-        if (this.isActive && this.frames.length > 0) {
+        if (this.isActive && !this.markedForDeletion && this.frames.length > 0) {
             const img = this.frames[this.frameIndex];
             if (img && img.complete) {
                 // Resize based on scale

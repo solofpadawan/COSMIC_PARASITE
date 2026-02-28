@@ -35,7 +35,11 @@ export class InputHandler {
 
                 if (this.keyBuffer.endsWith("god")) {
                     this.cheatGodEntered = true;
-                    this.keyBuffer = ""; // Reset buffer
+                    this.keyBuffer = "";
+                }
+                if (this.keyBuffer.endsWith("solof")) {
+                    this.cheatDebugEntered = true;
+                    this.keyBuffer = "";
                 }
             }
         });
@@ -115,6 +119,12 @@ export class InputHandler {
         Keys.Space = this.keyboardState.Space || gpSpace;
         Keys.Pause = this.keyboardState.p || this.keyboardState.P || gpPause;
         Keys.FastForward = this.keyboardState.f || this.keyboardState.F;
+        Keys.Mute = this.keyboardState.m || this.keyboardState.M;
+        Keys.SkipDistance = this.keyboardState.k || this.keyboardState.K;
+        Keys.ToggleFog = this.keyboardState.n || this.keyboardState.N;
+        Keys.TogglePixelArt = this.keyboardState.o || this.keyboardState.O;
+        Keys.ToggleLighting = this.keyboardState.l || this.keyboardState.L;
+        Keys.AddMoney = this.keyboardState.g || this.keyboardState.G;
 
         // Check single-press for Keyboard UI
         const currKbUp = this.keyboardState.ArrowUp || this.keyboardState.w;
