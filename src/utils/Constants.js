@@ -15,7 +15,9 @@ export const Keys = {
     FastForward: false,
     UI_Up: false,
     UI_Down: false,
-    UI_Accept: false
+    UI_Accept: false,
+    Mute: false,
+    SkipDistance: false
 };
 
 export const GAME_STATE = {

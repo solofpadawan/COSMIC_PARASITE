@@ -53,6 +53,7 @@ export class Game {
 
         this.lastWaveDirection = 0; // Store for wave 2 logic
         this.godMode = false;
+        this.debugMode = false;
         this.paused = false;
         this.lastPauseState = false; // Latch for input
         this.score = 0;
@@ -196,9 +197,36 @@ export class Game {
             this.lastFpsTime = now;
         }
 
+        // DEBUG MODE TOGGLE (type 'solof' anywhere)
+        if (this.input.cheatDebugEntered) {
+            this.debugMode = !this.debugMode;
+            this.input.cheatDebugEntered = false;
+            if (this.debugMode) {
+                // Play activation sound
+                const debugSfx = new Audio('assets/audio/eeeehaa!.wav');
+                debugSfx.volume = 0.6;
+                debugSfx.play().catch(() => { });
+                // Auto-mute after a short delay so the SFX doesn't interfere
+                setTimeout(() => {
+                    this.audio.muted = true;
+                    if (this.audio.music) this.audio.music.muted = true;
+                }, 200);
+                this.godMode = true;
+                console.log("🔧 DEBUG MODE: ON");
+            } else {
+                // Restore audio and disable god mode on deactivation
+                if (this.audio.muted) this.audio.toggleMute();
+                this.godMode = false;
+                console.log("🔧 DEBUG MODE: OFF");
+            }
+        }
+
+        // Save raw dt before any multipliers for warp timer
+        const rawDt = dt;
+
         // Global Speed Multiplier
-        // Fast Forward (Turbo) or Normal
-        if (Keys.FastForward) {
+        // Fast Forward (Turbo) or Normal — F only works in debug mode
+        if (this.debugMode && Keys.FastForward) {
             dt *= 10.0; // Turbo Speed (Super Fast)
         } else {
             dt *= 1.5; // Normal Speed (Previously adjusted)
@@ -210,6 +238,26 @@ export class Game {
             this.setPaused(!this.paused);
         }
         this.lastPauseState = Keys.Pause;
+
+        // MUTE TOGGLE (M key - only in debug mode)
+        if (this.debugMode && Keys.Mute && !this.lastMuteState) {
+            this.audio.toggleMute();
+        }
+        this.lastMuteState = Keys.Mute;
+
+        // WARP SKIP (K key - only in debug mode)
+        if (this.debugMode && Keys.SkipDistance && !this.lastSkipState && this.state === GAME_STATE.PLAYING) {
+            this.warpTimer = 1.0; // 1 second of warp
+            this.skipFlashTimer = 60; // Show indicator during warp
+            console.log("WARP activated!");
+        }
+        this.lastSkipState = Keys.SkipDistance;
+
+        // Apply warp speed
+        if (this.warpTimer > 0) {
+            this.warpTimer -= rawDt; // Count down using real frame time
+            dt *= 25.0; // Ultra-speed multiplier
+        }
 
         // Try unlock audio with Gamepad
         if (this.audio.isLocked && this.input.gamepadActive) {
@@ -784,11 +832,13 @@ export class Game {
             }
         }
 
-        // Cheat Check
+        // Cheat Check — god only works in debug mode
         if (this.input.cheatGodEntered) {
-            this.godMode = !this.godMode;
+            if (this.debugMode) {
+                this.godMode = !this.godMode;
+                console.log("God Mode:", this.godMode ? "ON" : "OFF");
+            }
             this.input.cheatGodEntered = false;
-            console.log("God Mode:", this.godMode ? "ON" : "OFF");
         }
 
         this.checkCollisions();
@@ -873,11 +923,35 @@ export class Game {
             if (!this.godMode) this.handlePlayerDeath();
         }
 
-        // 5. Collision with Floating Islands
+        // 5. Collision with Floating Islands (Player dies, island stays)
         for (let island of this.floatingIslands) {
             if (this.checkCollision(this.player, island.getBounds())) {
                 if (!this.godMode) this.handlePlayerDeath();
                 break;
+            }
+        }
+
+        // 5b. Player Bullets vs Floating Islands (Bullet destroyed, island stays)
+        for (let i = this.player.bullets.length - 1; i >= 0; i--) {
+            const bullet = this.player.bullets[i];
+            for (let island of this.floatingIslands) {
+                if (this.checkCollision(bullet, island.getBounds())) {
+                    this.player.bullets.splice(i, 1);
+                    this.explosions.push(new Explosion(bullet.x, bullet.y));
+                    break;
+                }
+            }
+        }
+
+        // 5c. Enemy Projectiles (Acid Spit) vs Floating Islands (Spit disappears, no explosion)
+        for (let i = this.enemyProjectiles.length - 1; i >= 0; i--) {
+            const proj = this.enemyProjectiles[i];
+            if (proj.type === 'giant_missile') continue; // Missiles handled separately
+            for (let island of this.floatingIslands) {
+                if (this.checkCollision(proj, island.getBounds())) {
+                    this.enemyProjectiles.splice(i, 1);
+                    break;
+                }
             }
         }
 
@@ -1036,9 +1110,24 @@ export class Game {
         const km = (this.distance / 1000).toFixed(1);
         this.ctx.fillText(t('dist') + km + " km", 20, 50);
 
+        // Debug Mode Indicator
+        if (this.debugMode) {
+            this.ctx.fillStyle = '#FF8800';
+            this.ctx.fillText('\u{1F527} DEBUG', 20, 100);
+        }
+
         if (this.godMode) {
             this.ctx.fillStyle = '#00FF00';
             this.ctx.fillText(t('god_mode'), 20, 80); // Moved down
+        }
+
+        // Skip Flash Indicator
+        if (this.skipFlashTimer > 0) {
+            this.skipFlashTimer--;
+            this.ctx.fillStyle = '#FFFF00';
+            this.ctx.font = 'bold 24px "Courier New", monospace';
+            this.ctx.textAlign = 'center';
+            this.ctx.fillText('>>> WARP >>>', CANVAS_WIDTH / 2, 30);
         }
 
         // Draw PAUSED Overlay
@@ -1204,6 +1293,7 @@ export class Game {
 
     drawGameOver() {
         this.environment.draw(this.ctx, this.shopVisited && !this.shopOpen && !this.isTransitioningToShop);
+        this.floatingIslands.forEach(island => island.draw(this.ctx));
         // Draw Enemies (Frozen or just last state)
         this.enemies.forEach(enemy => enemy.draw(this.ctx));
         this.enemyProjectiles.forEach(proj => proj.draw(this.ctx));

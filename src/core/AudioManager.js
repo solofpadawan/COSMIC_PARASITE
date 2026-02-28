@@ -2,6 +2,15 @@ export class AudioManager {
     constructor() {
         this.music = null;
         this.fadeInterval = null;
+        this.muted = false;
+    }
+
+    toggleMute() {
+        this.muted = !this.muted;
+        if (this.music) {
+            this.music.muted = this.muted;
+        }
+        console.log("Audio:", this.muted ? "MUTED" : "UNMUTED");
     }
 
     playMusic(src) {
@@ -55,6 +64,7 @@ export class AudioManager {
     }
 
     playSFX(src) {
+        if (this.muted) return;
         const sfx = new Audio(src);
         sfx.volume = 0.4;
         sfx.play().catch(e => {
