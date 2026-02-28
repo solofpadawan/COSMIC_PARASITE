@@ -121,6 +121,9 @@ export class InputHandler {
         Keys.FastForward = this.keyboardState.f || this.keyboardState.F;
         Keys.Mute = this.keyboardState.m || this.keyboardState.M;
         Keys.SkipDistance = this.keyboardState.k || this.keyboardState.K;
+        Keys.ToggleFog = this.keyboardState.n || this.keyboardState.N;
+        Keys.TogglePixelArt = this.keyboardState.o || this.keyboardState.O;
+        Keys.ToggleLighting = this.keyboardState.l || this.keyboardState.L;
 
         // Check single-press for Keyboard UI
         const currKbUp = this.keyboardState.ArrowUp || this.keyboardState.w;

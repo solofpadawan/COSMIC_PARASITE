@@ -28,6 +28,7 @@ export class AudioManager {
         this.music = new Audio(src);
         this.music.loop = true;
         this.music.volume = 0.5; // Default volume
+        this.music.muted = this.muted; // Respect current muted state
         this.isLocked = true;
 
         // Handling autoplay policies

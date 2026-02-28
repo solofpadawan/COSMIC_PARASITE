@@ -17,7 +17,10 @@ export const Keys = {
     UI_Down: false,
     UI_Accept: false,
     Mute: false,
-    SkipDistance: false
+    SkipDistance: false,
+    ToggleLighting: false,
+    ToggleFog: false,
+    TogglePixelArt: false
 };
 
 export const GAME_STATE = {

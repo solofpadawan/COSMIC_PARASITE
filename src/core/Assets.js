@@ -56,7 +56,7 @@ export function loadAssets(onProgress) {
         Assets.missile.src = 'assets/images/missile_fixed.png';
         Assets.missile.onload = onLoad;
 
-        Assets.cave_bg.src = 'assets/images/cave_bg_v2.png'; // Old for Start
+        Assets.cave_bg.src = 'assets/images/cave_bg_intro_v3.png'; // New background for Start
         Assets.cave_bg.onload = onLoad;
 
         Assets.cave_bg_play.src = 'assets/images/cave_bg_huge.png'; // New for Play
@@ -96,7 +96,7 @@ export function loadAssets(onProgress) {
         Assets.groundEaster.src = 'assets/images/ground_easter.png';
         Assets.groundEaster.onload = onLoad;
 
-        Assets.logo.src = 'assets/images/logo_v5.png';
+        Assets.logo.src = 'assets/images/logo_v7.png';
         Assets.logo.onload = onLoad;
 
         Assets.alienHand.src = 'assets/images/alien_hand.png';

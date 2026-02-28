@@ -10,6 +10,7 @@ import { Coin } from '../entities/Coin.js';
 import { SpeedUp } from '../entities/SpeedUp.js';
 import { FloatingIsland } from '../entities/FloatingIsland.js';
 import { Environment } from '../environment/Environment.js';
+import { LightingSystem } from '../environment/LightingSystem.js';
 import { ScoreManager } from './ScoreManager.js';
 import { CANVAS_WIDTH, CANVAS_HEIGHT, GAME_STATE, Keys } from '../utils/Constants.js';
 import { t } from '../utils/Language.js';
@@ -54,6 +55,7 @@ export class Game {
         this.lastWaveDirection = 0; // Store for wave 2 logic
         this.godMode = false;
         this.debugMode = false;
+        this.lighting = new LightingSystem();
         this.paused = false;
         this.lastPauseState = false; // Latch for input
         this.score = 0;
@@ -154,6 +156,30 @@ export class Game {
         this.fadeState = 'NONE'; // 'NONE', 'FADE_OUT', 'FADE_IN'
         this.fadeSpeed = 0.01; // Slow fade as requested
 
+        // Color Grading Settings (User Preferred Defaults)
+        this.colorSettings = {
+            contrast: 102,
+            brightness: 150,
+            saturate: 100,
+            hue: 0,
+            r: 1.0,
+            g: 1.0,
+            b: 1.2
+        };
+        this.currentFilter = 'none';
+
+        // Virtual Pixelation Buffer (800x450 for a "very fine" 1.2x pixel-art look)
+        // We render the 960x540 logic to this buffer then upscale.
+        this.virtualCanvas = document.createElement('canvas');
+        this.virtualCanvas.width = 800;
+        this.virtualCanvas.height = 450;
+        this.virtualCtx = this.virtualCanvas.getContext('2d');
+
+        this.initDebugSliders();
+        this.updateFilters(); // Apply defaults immediately
+
+        this.pixelArtEnabled = false;
+
         // Start Intro Music
         this.audio.playMusic('assets/audio/intro.ogg');
 
@@ -202,21 +228,23 @@ export class Game {
             this.debugMode = !this.debugMode;
             this.input.cheatDebugEntered = false;
             if (this.debugMode) {
-                // Play activation sound
+                // Mute immediately to be sure
+                this.audio.muted = true;
+                if (this.audio.music) this.audio.music.muted = true;
+
+                // Play activation sound (independent Audio object so it plays once even if muted)
                 const debugSfx = new Audio('assets/audio/eeeehaa!.wav');
                 debugSfx.volume = 0.6;
                 debugSfx.play().catch(() => { });
-                // Auto-mute after a short delay so the SFX doesn't interfere
-                setTimeout(() => {
-                    this.audio.muted = true;
-                    if (this.audio.music) this.audio.music.muted = true;
-                }, 200);
+
                 this.godMode = true;
+                document.getElementById('debug-color-panel').classList.remove('hidden');
                 console.log("🔧 DEBUG MODE: ON");
             } else {
                 // Restore audio and disable god mode on deactivation
                 if (this.audio.muted) this.audio.toggleMute();
                 this.godMode = false;
+                document.getElementById('debug-color-panel').classList.add('hidden');
                 console.log("🔧 DEBUG MODE: OFF");
             }
         }
@@ -258,6 +286,27 @@ export class Game {
             this.warpTimer -= rawDt; // Count down using real frame time
             dt *= 25.0; // Ultra-speed multiplier
         }
+
+        // LIGHTING TOGGLE (L key - only in debug mode)
+        if (this.debugMode && Keys.ToggleLighting && !this.lastLightingState) {
+            this.lighting.toggle();
+            console.log("Lighting:", this.lighting.enabled ? "ON" : "OFF");
+        }
+        this.lastLightingState = Keys.ToggleLighting;
+
+        // FOG TOGGLE (N key - only in debug mode)
+        if (this.debugMode && Keys.ToggleFog && !this.lastFogState) {
+            this.environment.fogEnabled = !this.environment.fogEnabled;
+            console.log("Fog:", this.environment.fogEnabled ? "ON" : "OFF");
+        }
+        this.lastFogState = Keys.ToggleFog;
+
+        // PIXEL-ART TOGGLE (O key - only in debug mode)
+        if (this.debugMode && Keys.TogglePixelArt && !this.lastPixelArtState) {
+            this.pixelArtEnabled = !this.pixelArtEnabled;
+            console.log("Pixel-Art:", this.pixelArtEnabled ? "ON" : "OFF");
+        }
+        this.lastPixelArtState = Keys.TogglePixelArt;
 
         // Try unlock audio with Gamepad
         if (this.audio.isLocked && this.input.gamepadActive) {
@@ -315,26 +364,89 @@ export class Game {
     }
 
     draw() {
+        // If pixel art is disabled, draw directly to main canvas at 960x540
+        if (!this.pixelArtEnabled) {
+            this.ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+            // Apply color grading filters ONLY to the world
+            this.ctx.save();
+            this.ctx.filter = this.currentFilter;
+            this.drawWorld();
+            this.ctx.restore();
+
+            // Draw UI on top without world filters
+            this.ctx.filter = 'none';
+            this.drawUI();
+            return;
+        }
+
+        // 1. Render World into Virtual Buffer (Pixelated)
+        const mainCtx = this.ctx;
+        this.ctx = this.virtualCtx;
+
+        this.ctx.clearRect(0, 0, this.virtualCanvas.width, this.virtualCanvas.height);
+        this.ctx.save();
+        // Scale 960x540 logic down to 800x450 (factor = 0.833...)
+        const s = 800 / 960;
+        this.ctx.scale(s, s);
+
+        this.drawWorld();
+
+        this.ctx.restore();
+
+        // 2. Upscale Buffer to Main Canvas
+        this.ctx = mainCtx;
         this.ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
+        // Apply color grading filters during the upscale/draw pass of the world
+        this.ctx.save();
+        this.ctx.filter = this.currentFilter;
+
+        this.ctx.imageSmoothingEnabled = false;
+        this.ctx.drawImage(
+            this.virtualCanvas,
+            0, 0, this.virtualCanvas.width, this.virtualCanvas.height,
+            0, 0, CANVAS_WIDTH, CANVAS_HEIGHT
+        );
+        this.ctx.restore();
+
+        // 3. Render UI directly to Main Canvas (Crisp & No context filters)
+        this.ctx.filter = 'none';
+        this.drawUI();
+    }
+
+    drawWorld() {
         switch (this.state) {
             case GAME_STATE.START:
-                this.drawStartScreen();
+                this.drawStartScreenWorld();
                 break;
             case GAME_STATE.PLAYING:
-                this.drawPlaying();
+                this.drawPlayingWorld();
                 break;
             case GAME_STATE.GAME_OVER:
-                this.drawGameOver();
+                this.drawGameOverWorld();
+                break;
+        }
+    }
+
+    drawUI() {
+        switch (this.state) {
+            case GAME_STATE.START:
+                this.drawStartScreenUI();
+                break;
+            case GAME_STATE.PLAYING:
+                this.drawPlayingUI();
+                break;
+            case GAME_STATE.GAME_OVER:
+                // DOM handles most GameOver UI, but we could add canvas UI here
                 break;
         }
 
-        // Draw Fade Overlay
+        // Global Overlays (Crisp)
         if (this.fadeAlpha > 0) {
             this.ctx.fillStyle = `rgba(0, 0, 0, ${this.fadeAlpha})`;
             this.ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
         }
-
     }
 
     updateStartScreen(dt) {
@@ -387,43 +499,63 @@ export class Game {
                 break;
         }
 
-        // Start Game on ANY key - But only if not already fading AND cooldown passed
-        if (this.input.anyKeyPressed && this.fadeState === 'NONE' && this.startScreenTimer > 1.0) {
+        // Start Game on SPACE or GAMEPAD Accept - But only if not already fading AND cooldown passed
+        const startInput = Keys.Space || this.input.gpSingleAccept;
+        if (startInput && this.fadeState === 'NONE' && this.startScreenTimer > 1.0) {
             this.onFadeOutComplete = () => this.startGame();
             this.fadeState = 'FADE_OUT';
-            this.audio.fadeOut(1.0); // Assuming AudioManager has fadeOut, or we just stop it in startGame
+            this.audio.fadeOut(1.0);
         }
     }
 
-    drawStartScreen() {
-        this.environment.draw(this.ctx, this.shopVisited && !this.shopOpen && !this.isTransitioningToShop);
-        // Removed Player draw
-        // Player is hidden
-
-        // Draw Logo
-        const logo = Assets.logo;
-        const logoScale = 1.32; // Adjusted from 0.66 for 50% optimized logo (926→463px)
-        const logoW = logo.width * logoScale;
-        const logoH = logo.height * logoScale;
-        const logoX = (CANVAS_WIDTH - logoW) / 2;
-        const logoY = 50;
-
+    drawStartScreenWorld() {
         this.ctx.save();
-        this.ctx.shadowBlur = 6; // Reduced from 20
-        this.ctx.shadowColor = '#00ff00';
-        this.ctx.drawImage(logo, logoX, logoY, logoW, logoH);
+        // Add a slight blur to the background for depth
+        const baseFilter = this.currentFilter === 'none' ? '' : this.currentFilter + ' ';
+        this.ctx.filter = baseFilter + 'blur(1px)';
+
+        this.environment.draw(this.ctx, this.shopVisited && !this.shopOpen && !this.isTransitioningToShop);
         this.ctx.restore();
 
-        // Draw Blinking Text
+        // Render Lighting Overlay for Start Screen (No blur for lighting)
+        this.renderStartScreenLighting();
+    }
+
+    drawStartScreenUI() {
+        // Draw Logo (UI Layer - High Resolution)
+        const logo = Assets.logo;
+        if (logo.complete) {
+            const logoW = CANVAS_WIDTH * 0.65;
+            const logoScale = logoW / logo.width;
+            const logoH = logo.height * logoScale;
+            const logoX = (CANVAS_WIDTH - logoW) / 2;
+            const logoY = (CANVAS_HEIGHT - logoH) / 3;
+
+            this.ctx.save();
+            // Enable smoothing specifically for the high-res logo
+            this.ctx.imageSmoothingEnabled = true;
+            this.ctx.imageSmoothingQuality = 'high';
+
+            // Original glow
+            this.ctx.shadowBlur = 3;
+            this.ctx.shadowColor = '#00ff00';
+
+            this.ctx.drawImage(logo, logoX, logoY, logoW, logoH);
+            this.ctx.restore();
+        }
+
+        // Draw Blinking Text (Crisp)
         this.blinkTimer++;
         if (Math.floor(this.blinkTimer / 30) % 2 === 0) {
             this.ctx.font = '24px "Courier New", Courier, monospace';
-            this.ctx.fillStyle = '#00ff00'; // Matrix Green or maybe Magenta?
+            this.ctx.fillStyle = '#00ff00';
             this.ctx.textAlign = 'center';
-            this.ctx.fillText(t('press_any_key_start'), CANVAS_WIDTH / 2, CANVAS_HEIGHT - 40);
+            // Specific instruction for Space/Gamepad
+            const startText = this.input.gamepadActive ? t('press_button_start') : t('press_space_start');
+            this.ctx.fillText(startText || 'PRESS SPACE TO START', CANVAS_WIDTH / 2, CANVAS_HEIGHT - 40);
         }
 
-        // Draw High Score Table (Animated)
+        // Draw High Score Table (Crisp)
         if (this.highScoreAnimState !== 'HIDDEN') {
             this.drawHighScoreTable();
         }
@@ -1067,21 +1199,28 @@ export class Game {
         }, 1000);
     }
 
-    drawPlaying() {
+    drawPlayingWorld() {
         this.environment.draw(this.ctx, this.shopVisited && !this.shopOpen && !this.isTransitioningToShop);
         this.floatingIslands.forEach(island => island.draw(this.ctx));
-        this.player.draw(this.ctx);
+
         this.enemies.forEach(enemy => enemy.draw(this.ctx));
         this.enemyProjectiles.forEach(proj => proj.draw(this.ctx));
         this.coins.forEach(coin => coin.draw(this.ctx));
         this.speedUps.forEach(pu => pu.draw(this.ctx));
         this.explosions.forEach(explosion => explosion.draw(this.ctx));
 
-        // Draw Score
-        // Draw Score
+        // Render Lighting Overlay
+        this.renderLighting();
+
+        // Draw Player AFTER lighting so its colors are not "washed out" or tinted by the darkness
+        this.player.draw(this.ctx);
+    }
+
+    drawPlayingUI() {
+        // Draw Score (Crisp)
         this.drawScore();
 
-        // Draw "Em desenvolvimento..." message
+        // Draw "Em desenvolvimento..." message (Crisp)
         if (this.showDevMessage) {
             this.ctx.save();
             this.ctx.font = 'normal 48px "Courier New", monospace';
@@ -1291,7 +1430,7 @@ export class Game {
         }
     }
 
-    drawGameOver() {
+    drawGameOverWorld() {
         this.environment.draw(this.ctx, this.shopVisited && !this.shopOpen && !this.isTransitioningToShop);
         this.floatingIslands.forEach(island => island.draw(this.ctx));
         // Draw Enemies (Frozen or just last state)
@@ -1301,7 +1440,193 @@ export class Game {
         // Draw Explosions
         this.explosions.forEach(explosion => explosion.draw(this.ctx));
 
+        // Render Lighting Overlay
+        this.renderLighting();
+
         // Note: Text and UI handled by DOM overlay
+    }
+
+    renderLighting() {
+        if (!this.lighting.enabled) return;
+
+        this.lighting.beginFrame();
+
+        // Player light (warm white glow)
+        const px = this.player.x + this.player.width / 2;
+        const py = this.player.y + this.player.height / 2;
+        this.lighting.addLight(px, py, 350, '#a1e0ffff', 0.3);
+
+        // Player bullets (orange)
+        this.player.bullets.forEach(b => {
+            this.lighting.addLight(b.x + b.width / 2, b.y + b.height / 2, 50, '#FF8800', 0.8);
+        });
+
+        // Enemy projectiles
+        this.enemyProjectiles.forEach(proj => {
+            if (proj.type === 'giant_missile') {
+                this.lighting.addLight(proj.x + proj.width / 2, proj.y + proj.height / 2, 80, '#FF4400', 0.9);
+            } else {
+                // Acid spit (lime green)
+                this.lighting.addLight(proj.x + proj.width / 2, proj.y + proj.height / 2, 35, '#AAFF00', 0.7);
+            }
+        });
+
+        // Explosions (orange, intensity fades with animation)
+        this.explosions.forEach(exp => {
+            const progress = exp.frameIndex / exp.frames.length;
+            const intensity = 1.0 - progress; // Fades as explosion progresses
+            this.lighting.addLight(exp.x, exp.y, 150 * intensity + 50, '#FF6600', intensity);
+        });
+
+        // Coins (gold)
+        this.coins.forEach(coin => {
+            this.lighting.addLight(coin.x + coin.width / 2, coin.y + coin.height / 2, 30, '#FFD700', 0.6);
+        });
+
+        // SpeedUps (cyan pulsing)
+        this.speedUps.forEach(pu => {
+            const pulse = 0.7 + Math.sin(pu.floatTimer * 2) * 0.3;
+            this.lighting.addLight(pu.x + pu.width / 2, pu.y + pu.height / 2, 60, '#00FFFF', pulse);
+        });
+
+        // Easter Egg (magenta glow)
+        if (this.environment.easterEgg) {
+            const ee = this.environment.easterEgg;
+            this.lighting.addLight(ee.x + ee.width / 2, ee.y + ee.height / 2, 120, '#FF00FF', 0.7);
+        }
+
+        // Enemies (subtle red glow, brighter purple for enemy01)
+        this.enemies.forEach(enemy => {
+            if (!enemy.isActive) return;
+            if (enemy.x > CANVAS_WIDTH || enemy.x + enemy.width < 0) return;
+
+            const color = enemy.type === 'enemy01' ? '#BF00FF' : '#FF2200';
+            this.lighting.addLight(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, 120, color, 0.5);
+        });
+
+        this.lighting.render(this.ctx);
+    }
+
+    renderStartScreenLighting() {
+        if (!this.lighting.enabled) return;
+
+        this.lighting.beginFrame();
+
+        // 1. Logo Glow (Pulsing Green)
+        // Logo is at Y=50, centered. We'll place the light in the middle of the logo area.
+        const logoPulse = 0.4 + Math.sin(this.startScreenTimer * 2) * 0.1;
+        this.lighting.addLight(CANVAS_WIDTH / 2, 150, 300, '#00FF00', logoPulse);
+
+        // 2. Subtle Ambient Light (reveals a bit of the cavern)
+        this.lighting.addLight(CANVAS_WIDTH / 4, CANVAS_HEIGHT / 2, 300, '#444444', 0.2);
+        this.lighting.addLight(3 * CANVAS_WIDTH / 4, CANVAS_HEIGHT / 2, 300, '#444444', 0.2);
+
+        this.lighting.render(this.ctx);
+    }
+
+    initDebugSliders() {
+        const sliders = [
+            { id: 'debug-contrast', prop: 'contrast', suffix: '%', valId: 'val-contrast' },
+            { id: 'debug-brightness', prop: 'brightness', suffix: '%', valId: 'val-brightness' },
+            { id: 'debug-saturate', prop: 'saturate', suffix: '%', valId: 'val-saturate' },
+            { id: 'debug-hue', prop: 'hue', suffix: 'deg', valId: 'val-hue' },
+            { id: 'debug-r', prop: 'r', suffix: '', valId: 'val-r' },
+            { id: 'debug-g', prop: 'g', suffix: '', valId: 'val-g' },
+            { id: 'debug-b', prop: 'b', suffix: '', valId: 'val-b' }
+        ];
+
+        sliders.forEach(s => {
+            const el = document.getElementById(s.id);
+            const valEl = document.getElementById(s.valId);
+            if (el) {
+                // Set initial slider position to match default values
+                el.value = this.colorSettings[s.prop];
+                if (valEl) valEl.innerText = this.colorSettings[s.prop];
+
+                el.addEventListener('input', (e) => {
+                    const val = parseFloat(e.target.value);
+                    this.colorSettings[s.prop] = val;
+                    if (valEl) valEl.innerText = val;
+                    this.updateFilters();
+                });
+            }
+        });
+
+        const copyBtn = document.getElementById('debug-copy-btn');
+        if (copyBtn) {
+            copyBtn.addEventListener('click', () => {
+                const config = `filter: contrast(${this.colorSettings.contrast}%) brightness(${this.colorSettings.brightness}%) saturate(${this.colorSettings.saturate}%) hue-rotate(${this.colorSettings.hue}deg); \nRGB Matrix: R:${this.colorSettings.r}, G:${this.colorSettings.g}, B:${this.colorSettings.b}`;
+                console.log("COLOR CONFIG:\n", config);
+                alert("Configuração copiada para o Console (F12)!");
+            });
+        }
+
+        const resetBtn = document.getElementById('debug-reset-btn');
+        if (resetBtn) {
+            resetBtn.addEventListener('click', () => {
+                // Return to NEUTRAL values (No modification)
+                this.colorSettings = {
+                    contrast: 100,
+                    brightness: 100,
+                    saturate: 100,
+                    hue: 0,
+                    r: 1.0,
+                    g: 1.0,
+                    b: 1.0
+                };
+
+                // Sync all sliders and labels explicitly
+                sliders.forEach(s => {
+                    const el = document.getElementById(s.id);
+                    const valEl = document.getElementById(s.valId);
+                    if (el) {
+                        el.value = this.colorSettings[s.prop];
+                        if (valEl) valEl.innerText = this.colorSettings[s.prop];
+                    }
+                });
+
+                this.updateFilters();
+                console.log("🎨 COLOR GRADING: Restaurado para os padrões do código.");
+            });
+        }
+    }
+
+    updateFilters() {
+        const canvas = document.getElementById('gameCanvas');
+        if (!canvas) return;
+
+        // Apply CSS Filters (Global)
+        const filters = [
+            `contrast(${this.colorSettings.contrast}%)`,
+            `brightness(${this.colorSettings.brightness}%)`,
+            `saturate(${this.colorSettings.saturate}%)`,
+            `hue-rotate(${this.colorSettings.hue}deg)`,
+            `url(#rgb-filter)` // Link to SVG channel matrix
+        ].join(' ');
+
+        this.currentFilter = filters;
+        // The canvas.style.filter is removed because we apply it via ctx.filter selectively in draw()
+
+        // Update SVG Matrix for RGB Channels
+        const matrix = document.querySelector('#rgb-filter feColorMatrix');
+        if (matrix) {
+            const r = this.colorSettings.r;
+            const g = this.colorSettings.g;
+            const b = this.colorSettings.b;
+            // Matrix structure:
+            // R G B A W
+            // R 0 0 0 0
+            // 0 G 0 0 0
+            // 0 0 B 0 0
+            // 0 0 0 1 0
+            const values = [
+                r, 0, 0, 0, 0,
+                0, g, 0, 0, 0,
+                0, 0, b, 0, 0,
+                0, 0, 0, 1, 0
+            ].join(' ');
+            matrix.setAttribute('values', values);
+        }
     }
 
     resetGame() {
@@ -1413,11 +1738,12 @@ export class Game {
         const shopScreen = document.getElementById('shop-screen');
         if (shopScreen) shopScreen.classList.remove('hidden');
 
+        // Switch to Shop Music
+        this.audio.playMusic('assets/audio/shop.ogg');
+
         // Retorna o fade imediatamente para revelar a loja (o painel escuro)
-        // ou deixa escuro mesmo dependendo do estilo css da loja (o atual já é rgba 0.9)
-        // Mas como a loja tá por cima, podemos fazer FADE_IN do jogo atrás dela
         this.fadeState = 'FADE_IN';
-        this.fadeSpeed = 0.05; // Fade in limpo atrás da loja
+        this.fadeSpeed = 0.05;
 
         this.updateShopUI();
     }
@@ -1430,6 +1756,14 @@ export class Game {
         // Hide Shop DOM immediately
         const shopScreen = document.getElementById('shop-screen');
         if (shopScreen) shopScreen.classList.add('hidden');
+
+        // Fade out shop music and return to stage music
+        this.audio.fadeOut(0.5);
+        setTimeout(() => {
+            if (this.state === GAME_STATE.PLAYING) {
+                this.audio.playMusic('assets/audio/stage01.ogg');
+            }
+        }, 600);
 
         // Unpause game
         this.isTransitioningToShop = false;

@@ -88,6 +88,7 @@ export class Projectile {
     }
 
     draw(ctx) {
+        if (this.markedForDeletion) return;
         if (this.type === 'missile' || this.type === 'giant_missile' || this.type === 'pierce') {
             if (Assets.missile.complete && Assets.missile.naturalWidth > 0) {
                 let col = this.currentFrame % this.cols;

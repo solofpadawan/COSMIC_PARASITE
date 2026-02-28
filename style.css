@@ -299,10 +299,7 @@ body {
     /* Mouse desativado conforme pedido */
 }
 
-.shop-btn:hover:not(:disabled),
-.shop-btn.focused:not(:disabled) {
-    /* Mantém estilo padrão, seleção será por míssil apenas */
-}
+
 
 .shop-btn:disabled {
     border-color: #555;
@@ -323,10 +320,7 @@ body {
     /* Mouse desativado */
 }
 
-.close-btn:hover,
-.close-btn.focused {
-    /* Sem fundo sólido, usa míssil */
-}
+
 
 /* --- Hand Seletor --- */
 .shop-btn.focused::before,
@@ -449,4 +443,67 @@ body {
 
 .hidden {
     display: none !important;
+}
+
+/* --- DEBUG COLOR PANEL --- */
+#debug-color-panel {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 200px;
+    background: rgba(0, 0, 0, 0.85);
+    border: 2px solid #00ff00;
+    padding: 15px;
+    z-index: 1000;
+    color: #00ff00;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 10px;
+}
+
+#debug-color-panel h3 {
+    margin: 0 0 10px 0;
+    text-align: center;
+    font-size: 12px;
+}
+
+.slider-group {
+    margin-bottom: 8px;
+}
+
+.slider-group label {
+    display: block;
+    margin-bottom: 4px;
+}
+
+.slider-group input {
+    width: 100%;
+    cursor: pointer;
+}
+
+.debug-panel-btn {
+    width: 100%;
+    background: #00ff00;
+    color: #000 !important;
+    border: none;
+    padding: 10px;
+    margin-top: 5px;
+    font-family: inherit;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 11px;
+    text-transform: uppercase;
+}
+
+
+.debug-panel-btn:hover {
+    filter: brightness(1.2);
+    box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+}
+
+
+
+hr {
+    border: 0;
+    border-top: 1px solid #444;
+    margin: 10px 0;
 }

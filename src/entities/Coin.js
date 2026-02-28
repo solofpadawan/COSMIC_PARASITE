@@ -66,6 +66,7 @@ export class Coin {
     }
 
     draw(ctx) {
+        if (this.markedForDeletion) return;
         const img = this.frames[this.frameIndex];
         if (img) {
             ctx.drawImage(img, this.x, this.y, this.width, this.height);
