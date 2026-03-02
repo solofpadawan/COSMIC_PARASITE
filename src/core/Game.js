@@ -73,6 +73,8 @@ export class Game {
         this.shopVisited = false;
         this.shopPurchased = false;
         this.shopSelectedIndex = 0; // Focus index: 0-4 items, 5 close
+        this.purchasedSpread = false;
+        this.purchasedPierce = false;
 
         // Bind for events
         this.submitName = this.submitName.bind(this);
@@ -223,7 +225,7 @@ export class Game {
             this.lastFpsTime = now;
         }
 
-        // DEBUG MODE TOGGLE (type 'solof' anywhere)
+        // DEBUG MODE TOGGLE (type '16111973' anywhere)
         if (this.input.cheatDebugEntered) {
             this.debugMode = !this.debugMode;
             this.input.cheatDebugEntered = false;
