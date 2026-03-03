@@ -554,15 +554,42 @@ export class Game {
             this.ctx.restore();
         }
 
-        // Draw Blinking Text (Crisp)
-        this.blinkTimer++;
-        if (Math.floor(this.blinkTimer / 30) % 2 === 0) {
-            this.ctx.font = '24px "Courier New", Courier, monospace';
-            this.ctx.fillStyle = '#00ff00';
-            this.ctx.textAlign = 'center';
-            // Specific instruction for Space/Gamepad
-            const startText = this.input.gamepadActive ? t('press_button_start') : t('press_space_start');
-            this.ctx.fillText(startText || 'PRESS SPACE TO START', CANVAS_WIDTH / 2, CANVAS_HEIGHT - 40);
+        // Draw Start Menu Options (Crisp)
+        this.ctx.font = 'bold 24px "Courier New", Courier, monospace';
+        this.ctx.fillStyle = '#00ff00';
+        this.ctx.textAlign = 'center';
+
+        const menuY = CANVAS_HEIGHT - 100; // Moved up from -60
+
+        this.ctx.fillText(t('single_player'), CANVAS_WIDTH / 2, menuY);
+        this.ctx.fillText(t('multiplayer'), CANVAS_WIDTH / 2, menuY + 40);
+
+        // Draw alien hand selector pointing to Single Player
+        const hand = Assets.alienHand;
+        if (hand.complete && hand.width > 0) {
+            // Scale hand to fit 24px text heights
+            const targetHeight = 40; // Slightly larger than the 24px text
+            const handScale = targetHeight / hand.height;
+            const handW = hand.width * handScale;
+            const handH = targetHeight;
+
+            // Re-measure text specifically to place hand relative to it
+            const textWidth = this.ctx.measureText(t('single_player')).width;
+
+            // Animate hand horizontally
+            // Math.sin oscillates between -1 and 1. We want an oscillation of ~10 pixels.
+            // Using Date.now() / 200 gives a fast left/right hover matching the CSS animation.
+            const hoverOffset = Math.sin(Date.now() / 200) * 5;
+
+            const baseX = (CANVAS_WIDTH / 2) - (textWidth / 2) - handW - 15;
+            const handX = baseX + hoverOffset;
+
+            // Align hand vertically with the text. The index finger on the alien hand sprite
+            // is near the top of the image. By adding to Y, we push the whole sprite down,
+            // visually bringing the finger more in line with the vertical center of the text.
+            const handY = menuY - (handH / 2) + 2;
+
+            this.ctx.drawImage(hand, handX, handY, handW, handH);
         }
 
         // Draw High Score Table (Crisp)
