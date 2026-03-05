@@ -7,10 +7,9 @@ export class ScoreManager {
     getBaseUrl() {
         const hostname = window.location.hostname;
         const isLocal = hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '';
-        return isLocal ? '.' : 'https://maggiore-sys.com.br/game';
+        //return isLocal ? '.' : 'https://maggiore-sys.com.br/game';
+        return isLocal ? '.' : 'https://games4me.alwaysdata.net';
     }
-
-
 
     async loadHighScores() {
         try {
