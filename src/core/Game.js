@@ -1515,12 +1515,6 @@ export class Game {
             this.lighting.addLight(coin.x + coin.width / 2, coin.y + coin.height / 2, 30, '#FFD700', 0.6);
         });
 
-        // SpeedUps (cyan pulsing)
-        this.speedUps.forEach(pu => {
-            const pulse = 0.7 + Math.sin(pu.floatTimer * 2) * 0.3;
-            this.lighting.addLight(pu.x + pu.width / 2, pu.y + pu.height / 2, 60, '#00FFFF', pulse);
-        });
-
         // Easter Egg (magenta glow)
         if (this.environment.easterEgg) {
             const ee = this.environment.easterEgg;
