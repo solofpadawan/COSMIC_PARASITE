@@ -73,6 +73,8 @@ export class Game {
         this.shopVisited = false;
         this.shopPurchased = false;
         this.shopSelectedIndex = 0; // Focus index: 0-4 items, 5 close
+        this.purchasedSpread = false;
+        this.purchasedPierce = false;
 
         // Bind for events
         this.submitName = this.submitName.bind(this);
@@ -223,7 +225,7 @@ export class Game {
             this.lastFpsTime = now;
         }
 
-        // DEBUG MODE TOGGLE (type 'solof' anywhere)
+        // DEBUG MODE TOGGLE (type '16111973' anywhere)
         if (this.input.cheatDebugEntered) {
             this.debugMode = !this.debugMode;
             this.input.cheatDebugEntered = false;
@@ -466,8 +468,8 @@ export class Game {
 
         switch (this.highScoreAnimState) {
             case 'HIDDEN':
-                // Wait 10 seconds before showing
-                if (this.highScoreAnimTimer >= 10) {
+                // Wait 15 seconds before showing (increased from 10)
+                if (this.highScoreAnimTimer >= 15) {
                     this.highScoreAnimState = 'SLIDING_IN';
                     this.highScoreAnimTimer = 0;
                 }
@@ -486,8 +488,8 @@ export class Game {
                 break;
 
             case 'VISIBLE':
-                // Stay visible for 15 seconds
-                if (this.highScoreAnimTimer >= 15) {
+                // Stay visible for 8 seconds (increased from 15)
+                if (this.highScoreAnimTimer >= 8) {
                     this.highScoreAnimState = 'SLIDING_OUT';
                     this.highScoreAnimTimer = 0;
                 }
@@ -519,7 +521,7 @@ export class Game {
         this.ctx.save();
         // Add a slight blur to the background for depth
         const baseFilter = this.currentFilter === 'none' ? '' : this.currentFilter + ' ';
-        this.ctx.filter = baseFilter + 'blur(1.4px)';
+        //this.ctx.filter = baseFilter + 'blur(1px)';
 
         this.environment.draw(this.ctx, this.shopVisited && !this.shopOpen && !this.isTransitioningToShop);
         this.ctx.restore();
@@ -545,22 +547,53 @@ export class Game {
 
             // Pulsing glow effect
             const pulse = Math.sin(Date.now() / 500) * 0.5 + 0.5; // 0 to 1
-            this.ctx.shadowBlur = 5 + pulse * 8; // pulses between 5 and 20
+            this.ctx.shadowBlur = 5 + pulse * 18; // pulses between 5 and 20
             this.ctx.shadowColor = '#00ff00';
 
             this.ctx.drawImage(logo, logoX, logoY, logoW, logoH);
             this.ctx.restore();
         }
 
-        // Draw Blinking Text (Crisp)
-        this.blinkTimer++;
-        if (Math.floor(this.blinkTimer / 30) % 2 === 0) {
-            this.ctx.font = '24px "Courier New", Courier, monospace';
-            this.ctx.fillStyle = '#00ff00';
-            this.ctx.textAlign = 'center';
-            // Specific instruction for Space/Gamepad
-            const startText = this.input.gamepadActive ? t('press_button_start') : t('press_space_start');
-            this.ctx.fillText(startText || 'PRESS SPACE TO START', CANVAS_WIDTH / 2, CANVAS_HEIGHT - 40);
+        // Draw Start Menu Options (Crisp)
+        this.ctx.font = 'bold 24px "Courier New", Courier, monospace';
+        this.ctx.textAlign = 'center';
+
+        const menuY = CANVAS_HEIGHT - 100; // Moved up from -60
+
+        // Single Player (Active)
+        this.ctx.fillStyle = '#00ff00';
+        this.ctx.fillText(t('single_player'), CANVAS_WIDTH / 2, menuY);
+
+        // Multiplayer (Disabled/Dimmed)
+        this.ctx.fillStyle = '#005500';
+        this.ctx.fillText(t('multiplayer'), CANVAS_WIDTH / 2, menuY + 40);
+
+        // Draw alien hand selector pointing to Single Player
+        const hand = Assets.alienHand;
+        if (hand.complete && hand.width > 0) {
+            // Scale hand to fit 24px text heights
+            const targetHeight = 40; // Slightly larger than the 24px text
+            const handScale = targetHeight / hand.height;
+            const handW = hand.width * handScale;
+            const handH = targetHeight;
+
+            // Re-measure text specifically to place hand relative to it
+            const textWidth = this.ctx.measureText(t('single_player')).width;
+
+            // Animate hand horizontally
+            // Math.sin oscillates between -1 and 1. We want an oscillation of ~10 pixels.
+            // Using Date.now() / 200 gives a fast left/right hover matching the CSS animation.
+            const hoverOffset = Math.sin(Date.now() / 200) * 5;
+
+            const baseX = (CANVAS_WIDTH / 2) - (textWidth / 2) - handW - 15;
+            const handX = baseX + hoverOffset;
+
+            // Align hand vertically with the text. The index finger on the alien hand sprite
+            // is near the top of the image. By adding to Y, we push the whole sprite down,
+            // visually bringing the finger more in line with the vertical center of the text.
+            const handY = menuY - (handH / 2) + 2;
+
+            this.ctx.drawImage(hand, handX, handY, handW, handH);
         }
 
         // Draw High Score Table (Crisp)
@@ -579,7 +612,7 @@ export class Game {
         this.ctx.save();
 
         // Background
-        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
         this.ctx.strokeStyle = '#00ff00';
         this.ctx.lineWidth = 3;
         this.ctx.beginPath();
@@ -1486,12 +1519,6 @@ export class Game {
             this.lighting.addLight(coin.x + coin.width / 2, coin.y + coin.height / 2, 30, '#FFD700', 0.6);
         });
 
-        // SpeedUps (cyan pulsing)
-        this.speedUps.forEach(pu => {
-            const pulse = 0.7 + Math.sin(pu.floatTimer * 2) * 0.3;
-            this.lighting.addLight(pu.x + pu.width / 2, pu.y + pu.height / 2, 60, '#00FFFF', pulse);
-        });
-
         // Easter Egg (magenta glow)
         if (this.environment.easterEgg) {
             const ee = this.environment.easterEgg;
@@ -1520,9 +1547,31 @@ export class Game {
         const logoPulse = 0.4 + Math.sin(this.startScreenTimer * 2) * 0.1;
         this.lighting.addLight(CANVAS_WIDTH / 2, 150, 300, '#00FF00', logoPulse);
 
-        // 2. Subtle Ambient Light (reveals a bit of the cavern)
-        this.lighting.addLight(CANVAS_WIDTH / 4, CANVAS_HEIGHT / 2, 300, '#444444', 0.2);
-        this.lighting.addLight(3 * CANVAS_WIDTH / 4, CANVAS_HEIGHT / 2, 300, '#444444', 0.2);
+        // 2. Faulty Lamp Ambient Light (reveals a bit of the cavern)
+        // Simulate a broken lamp: mostly lit, with occasional drops to darkness
+        const cycle = this.startScreenTimer % 5.5;
+        let ambientIntensity = 0.9; // Default brightness (fully lit cavern)
+
+        if (cycle > 4.0) {
+            if (!this.flickerSoundPlayed) {
+                this.audio.playFlickerSound();
+                this.flickerSoundPlayed = true;
+            }
+            // Erratic blacking out/dimming for 1.5 seconds of the cycle
+            const noise = Math.sin(this.startScreenTimer * 35) + Math.cos(this.startScreenTimer * 20);
+            if (noise > 0.5) {
+                ambientIntensity = Math.random() * 0.05; // Drop to near darkness
+            } else if (Math.random() > 0.8) {
+                ambientIntensity = 0; // Total blackout moment
+            }
+        } else {
+            this.flickerSoundPlayed = false;
+        }
+
+        if (ambientIntensity > 0) {
+            this.lighting.addLight(CANVAS_WIDTH / 4, CANVAS_HEIGHT / 2, 300, '#444444', ambientIntensity);
+            this.lighting.addLight(3 * CANVAS_WIDTH / 4, CANVAS_HEIGHT / 2, 300, '#444444', ambientIntensity);
+        }
 
         this.lighting.render(this.ctx);
     }

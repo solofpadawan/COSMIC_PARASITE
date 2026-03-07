@@ -56,7 +56,7 @@ export function loadAssets(onProgress) {
         Assets.missile.src = 'assets/images/missile_fixed.png';
         Assets.missile.onload = onLoad;
 
-        Assets.cave_bg.src = 'assets/images/cave_bg_intro_v3.png'; // New background for Start
+        Assets.cave_bg.src = 'assets/images/cave_bg_v3.png'; // New background for Start
         Assets.cave_bg.onload = onLoad;
 
         Assets.cave_bg_play.src = 'assets/images/cave_bg_huge.png'; // New for Play
