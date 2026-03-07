@@ -112,6 +112,104 @@ export class AudioManager {
         }, 200);
     }
 
+    playFlickerSound() {
+        if (this.muted || this.isLocked) return;
+
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+
+        try {
+            const ctx = new AudioContext();
+            const duration = 1.5;
+
+            // 1. High-pitched fluorescent "whine" with erratic pitch fluctuations
+            const whineOsc = ctx.createOscillator();
+            whineOsc.type = 'sine'; // Thin, pure tone
+            const baseFreq = 2500 + Math.random() * 1500; // Between 2500 and 4000Hz (random pitch each time)
+            whineOsc.frequency.setValueAtTime(baseFreq, ctx.currentTime);
+
+            // Add chaotic pitch jumps to simulate failing ballast
+            let nextTime = 0.1;
+            while (nextTime < duration) {
+                const pitchShift = baseFreq + (Math.random() * 800 - 400);
+                whineOsc.frequency.linearRampToValueAtTime(pitchShift, ctx.currentTime + nextTime);
+                nextTime += 0.1 + Math.random() * 0.3;
+            }
+
+            const whineGain = ctx.createGain();
+            whineGain.gain.value = 0.005 + Math.random() * 0.01; // Extremely quiet background ringing
+
+            whineOsc.connect(whineGain);
+            whineGain.connect(ctx.destination);
+
+            // 2. Electrical Sparks / Crackling (Completely procedural randomness)
+            const bufferSize = ctx.sampleRate * duration;
+            const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+            const data = buffer.getChannelData(0);
+
+            // State machine to generate truly random electric burst clusters
+            let inBurst = false;
+            let samplesLeftInState = 0;
+
+            for (let i = 0; i < bufferSize; i++) {
+                if (samplesLeftInState <= 0) {
+                    // Randomly decide whether to crackle or be silent
+                    inBurst = Math.random() > 0.5; // 50% chance of quick crackle
+                    if (inBurst) {
+                        samplesLeftInState = Math.floor(Math.random() * ctx.sampleRate * 0.08); // Burst up to 80ms
+                    } else {
+                        samplesLeftInState = Math.floor(Math.random() * ctx.sampleRate * 0.15); // Silence up to 150ms
+                    }
+                }
+                samplesLeftInState--;
+
+                if (inBurst) {
+                    // Sparse hash noise
+                    if (Math.random() > 0.5) {
+                        data[i] = (Math.random() * 2 - 1) * Math.random();
+                    } else {
+                        data[i] = 0;
+                    }
+                } else {
+                    // Occasional stray micro-spark during "silence" to maintain tension
+                    if (Math.random() > 0.995) {
+                        data[i] = (Math.random() * 2 - 1) * 0.5;
+                    } else {
+                        data[i] = 0;
+                    }
+                }
+            }
+
+            const sparkSource = ctx.createBufferSource();
+            sparkSource.buffer = buffer;
+
+            // CRITICAL: Highpass filter removes ALL low frequencies so it doesn't sound like a drum
+            const sparkFilter = ctx.createBiquadFilter();
+            sparkFilter.type = 'highpass';
+            sparkFilter.frequency.value = 5000; // Only extremely thin, crispy high frequencies pass
+
+            const sparkGain = ctx.createGain();
+            sparkGain.gain.value = 0.4; // Soft zaps, no longer overpowering
+
+            sparkSource.connect(sparkFilter);
+            sparkFilter.connect(sparkGain);
+            sparkGain.connect(ctx.destination);
+
+            // Start & Stop 
+            whineOsc.start(ctx.currentTime);
+            whineOsc.stop(ctx.currentTime + duration);
+            sparkSource.start(ctx.currentTime);
+            sparkSource.stop(ctx.currentTime + duration);
+
+            // Cleanup context to avoid memory leak
+            setTimeout(() => {
+                if (ctx.state !== 'closed') ctx.close();
+            }, duration * 1000 + 100);
+        } catch (e) {
+            console.error("Flicker sound failed:", e);
+        }
+    }
+
     stopMusic() {
         if (this.music) {
             this.music.pause();

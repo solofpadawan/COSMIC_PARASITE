@@ -468,8 +468,8 @@ export class Game {
 
         switch (this.highScoreAnimState) {
             case 'HIDDEN':
-                // Wait 10 seconds before showing
-                if (this.highScoreAnimTimer >= 10) {
+                // Wait 15 seconds before showing (increased from 10)
+                if (this.highScoreAnimTimer >= 15) {
                     this.highScoreAnimState = 'SLIDING_IN';
                     this.highScoreAnimTimer = 0;
                 }
@@ -488,8 +488,8 @@ export class Game {
                 break;
 
             case 'VISIBLE':
-                // Stay visible for 15 seconds
-                if (this.highScoreAnimTimer >= 15) {
+                // Stay visible for 8 seconds (increased from 15)
+                if (this.highScoreAnimTimer >= 8) {
                     this.highScoreAnimState = 'SLIDING_OUT';
                     this.highScoreAnimTimer = 0;
                 }
@@ -556,12 +556,16 @@ export class Game {
 
         // Draw Start Menu Options (Crisp)
         this.ctx.font = 'bold 24px "Courier New", Courier, monospace';
-        this.ctx.fillStyle = '#00ff00';
         this.ctx.textAlign = 'center';
 
         const menuY = CANVAS_HEIGHT - 100; // Moved up from -60
 
+        // Single Player (Active)
+        this.ctx.fillStyle = '#00ff00';
         this.ctx.fillText(t('single_player'), CANVAS_WIDTH / 2, menuY);
+
+        // Multiplayer (Disabled/Dimmed)
+        this.ctx.fillStyle = '#005500';
         this.ctx.fillText(t('multiplayer'), CANVAS_WIDTH / 2, menuY + 40);
 
         // Draw alien hand selector pointing to Single Player
@@ -1543,9 +1547,31 @@ export class Game {
         const logoPulse = 0.4 + Math.sin(this.startScreenTimer * 2) * 0.1;
         this.lighting.addLight(CANVAS_WIDTH / 2, 150, 300, '#00FF00', logoPulse);
 
-        // 2. Subtle Ambient Light (reveals a bit of the cavern)
-        this.lighting.addLight(CANVAS_WIDTH / 4, CANVAS_HEIGHT / 2, 300, '#444444', 0.2);
-        this.lighting.addLight(3 * CANVAS_WIDTH / 4, CANVAS_HEIGHT / 2, 300, '#444444', 0.2);
+        // 2. Faulty Lamp Ambient Light (reveals a bit of the cavern)
+        // Simulate a broken lamp: mostly lit, with occasional drops to darkness
+        const cycle = this.startScreenTimer % 5.5;
+        let ambientIntensity = 0.9; // Default brightness (fully lit cavern)
+
+        if (cycle > 4.0) {
+            if (!this.flickerSoundPlayed) {
+                this.audio.playFlickerSound();
+                this.flickerSoundPlayed = true;
+            }
+            // Erratic blacking out/dimming for 1.5 seconds of the cycle
+            const noise = Math.sin(this.startScreenTimer * 35) + Math.cos(this.startScreenTimer * 20);
+            if (noise > 0.5) {
+                ambientIntensity = Math.random() * 0.05; // Drop to near darkness
+            } else if (Math.random() > 0.8) {
+                ambientIntensity = 0; // Total blackout moment
+            }
+        } else {
+            this.flickerSoundPlayed = false;
+        }
+
+        if (ambientIntensity > 0) {
+            this.lighting.addLight(CANVAS_WIDTH / 4, CANVAS_HEIGHT / 2, 300, '#444444', ambientIntensity);
+            this.lighting.addLight(3 * CANVAS_WIDTH / 4, CANVAS_HEIGHT / 2, 300, '#444444', ambientIntensity);
+        }
 
         this.lighting.render(this.ctx);
     }
